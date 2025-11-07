@@ -173,7 +173,9 @@ void PocketmageEink::forceSlowFullUpdate(bool force)            { forceSlowFullU
 // Setup for Eink Class
 void setupEink() {
   display.init(115200);
-  EINK().resetDisplay(true, GxEPD_BLACK);
+  display.setRotation(3);
+  display.setTextColor(GxEPD_BLACK);
+  display.setFullWindow();
   EINK().setTXTFont(&FreeMonoBold9pt7b); // default font, computeFontMetrics_()
 
   xTaskCreatePinnedToCore(
