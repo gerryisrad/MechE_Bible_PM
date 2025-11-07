@@ -16,10 +16,9 @@ static constexpr const char* TAG = "MAIN"; // TODO: Come up with a better tag
 
 // ADD E-INK HANDLER APP SCRIPTS HERE
 void applicationEinkHandler() {
-  if (OTA_APP) {
+  #if OTA_APP
     einkHandler_APP(); // OTA_APP: entry point
-    return;
-  }
+  #endif
   // OTA_APP: Remove switch statement
   #if !OTA_APP // POCKETMAGE_OS
   switch (CurrentAppState) {
@@ -69,7 +68,7 @@ void processKB() {
   // Example OTA APP 
   // Displays a progress bar and then reboots to PocketMage OS
   // Remove this when making a real OTA APP + uncomment processKB_APP();
-  if (OTA_APP) {
+  #if OTA_APP
     static int x = 0;
     ESP_LOGD(TAG, "OTA APP MODE - PROGRESS: %d\n", x);
     // Draw a progress bar across the screen and then return to PocketMage OS
@@ -95,7 +94,7 @@ void processKB() {
     processKB_APP(); // OTA_APP: entry point
     #endif
     return;
-  }
+  #endif
   // OTA_APP: Remove switch statement
   #if !OTA_APP // POCKETMAGE_OS
   switch (CurrentAppState) {
@@ -154,12 +153,12 @@ void setup() {
 // Keyboard / OLED Loop
 void loop() {
 
-  if (!OTA_APP){
+  #if !OTA_APP // POCKETMAGE_OS
     if (!noTimeout)  checkTimeout();
     if (DEBUG_VERBOSE) printDebug();
 
     PowerSystem.printDiagnostics();
-  }
+  #endif
 
   updateBattState();
   processKB();

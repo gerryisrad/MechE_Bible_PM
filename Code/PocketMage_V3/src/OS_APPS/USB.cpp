@@ -186,7 +186,7 @@ void USB_INIT() {
   USB.onEvent(usbEventCallback);
   USB.begin();
 
-  ESP_LOGI("USB MSC started. Capacity: %d bytes\n", card->csd.capacity * card->csd.sector_size);
+  //ESP_LOGI("USB MSC started. Capacity: %d bytes\n", card->csd.capacity * card->csd.sector_size);
   mscEnabled = true;
   delay(50);
 

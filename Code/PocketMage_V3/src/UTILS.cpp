@@ -24,11 +24,11 @@ void printDebug() {
 void checkTimeout() {
     int randomScreenSaver = 0;
     CLOCK().setTimeoutMillis(millis());
-
+    ESP_LOGE(TAG,"checking timeout"); 
     // Trigger timeout deep sleep
     if (!disableTimeout) {
         if (CLOCK().getTimeDiff() >= TIMEOUT * 1000) {
-            ESP_LOGW(TAG, "Device idle... Deep sleeping");
+            ESP_LOGE(TAG, "Device idle... Deep sleeping");
 
             // Give a chance to keep device awake
             OLED().oledWord("  Going to sleep!  ");
@@ -91,21 +91,21 @@ void checkTimeout() {
     // Power Button Event sleep
     if (PWR_BTN_event && CurrentHOMEState != NOWLATER) {
         PWR_BTN_event = false;
-
+        ESP_LOGE(TAG,"Power Button Event: Sleeping now");
         // OTA_APP: Remove saveEditingFile
         // Save current work
         #if !OTA_APP
         saveEditingFile();
         #endif
-
+        ESP_LOGE(TAG,"After saveEditingFile");
         if (digitalRead(CHRG_SENS) == HIGH && !OTA_APP) {
         // Save last state
-
+        ESP_LOGE(TAG,"Charge sense high");
         prefs.begin("PocketMage", false);
         prefs.putInt("CurrentAppState", static_cast<int>(CurrentAppState));
         prefs.putString("editingFile", SD().getEditingFile());
         prefs.end();
-
+        ESP_LOGE(TAG,"finished adding prefs");    
         CurrentAppState = HOME;
         CurrentHOMEState = NOWLATER;
         //OTA_APP: remove updateTaskArray and sortTasksByDueDate
@@ -116,19 +116,21 @@ void checkTimeout() {
         OLED().setPowerSave(true);
         disableTimeout = true;
         newState = true;
-
+        
         // Shutdown Jingle
         BZ().playJingle(Jingles::Shutdown);
-
+        
         // Clear screen
         display.setFullWindow();
         display.fillScreen(GxEPD_WHITE);
-
+        ESP_LOGE(TAG,"cleared screen");   
         } else {
+            ESP_LOGE(TAG,"Not charging");
             switch (CurrentAppState) {
                 // OTA_APP skip TXT case
                 case TXT:
                 if (SLEEPMODE == "TEXT" && SD().getEditingFile() != "" && !OTA_APP) {
+                    ESP_LOGE(TAG,"text sleep mode");   
                     EINK().setFullRefreshAfter(FULL_REFRESH_AFTER + 1);
                     display.setFullWindow();
                     EINK().einkTextDynamic(true, true);
@@ -148,15 +150,18 @@ void checkTimeout() {
                 }
                 // Sleep device normally
                 else
+                    ESP_LOGE(TAG,"sleeping normal 1");  
                     pocketmage::deepSleep();
                 break;
                 default:
+                    ESP_LOGE(TAG,"sleeping normal 2"); 
                     pocketmage::deepSleep();
                 break;
             }
         }
 
     } else if (PWR_BTN_event && CurrentHOMEState == NOWLATER) {
+        ESP_LOGE(TAG,"In NOWLATER state, returning home"); 
         // Load last state
         /*prefs.begin("PocketMage", true);
         SD().setEditingFile(prefs.getString("editingFile", "");

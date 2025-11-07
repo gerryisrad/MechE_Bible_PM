@@ -70,8 +70,8 @@ bool PocketmageTOUCH::updateScroll(int maxScroll,ulong& lineScroll) {
     if (touched & (1 << i)) {
       touchPos = i;
 
-      ESP_LOGI(tag, "Prev pad: %d\tTouched pad: %d\n", lastTouchPos,
-               touchPos);  // TODO(logging): come up with more descriptive tags
+      //ESP_LOGI(tag, "Prev pad: %d\tTouched pad: %d\n", lastTouchPos,
+      //         touchPos);  // TODO(logging): come up with more descriptive tags
 
       break;
     }
@@ -80,7 +80,7 @@ bool PocketmageTOUCH::updateScroll(int maxScroll,ulong& lineScroll) {
   unsigned long currentTime = millis();
 
   if (touchPos != -1) {  // If a touch is detected
-    ESP_LOGI(tag, "Touch detected\n");
+    //ESP_LOGI(tag, "Touch detected\n");
 
     if (lastTouchPos != -1) {  // Compare with previous touch
       int touchDelta = abs(touchPos - lastTouchPos);
