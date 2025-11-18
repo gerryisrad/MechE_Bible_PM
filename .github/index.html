@@ -422,61 +422,28 @@
         function updateManifest() {
             const version = versionSelect.value;
             const installType = document.querySelector('input[name="install-type"]:checked').value;
-        
+
             if (!version) {
                 installBtn.removeAttribute('manifest');
                 statusDiv.textContent = 'Please select a version';
                 return;
             }
-        
+
             const manifestFile = installType === 'update'
                 ? 'manifest_no_erase.json'
                 : 'manifest.json';
-        
+
             const manifestPath = `./firmware/${version}/${manifestFile}`;
             installBtn.setAttribute('manifest', manifestPath);
-        
+
             const modeText = installType === 'update' ? 'Update' : 'Fresh Install';
             statusDiv.textContent = `Ready to flash ${version} (${modeText})`;
-            
-            // Add a warning for update mode
-            if (installType === 'update') {
-                const warningDiv = document.createElement('div');
-                warningDiv.style.marginTop = '0.5rem';
-                warningDiv.style.color = '#d63384';
-                warningDiv.style.fontSize = '0.9em';
-                warningDiv.textContent = 'Note: Use Update mode only if you already have PocketMage installed.';
-                
-                // Remove any existing warning
-                const existingWarning = document.querySelector('.update-warning');
-                if (existingWarning) {
-                    existingWarning.remove();
-                }
-                
-                warningDiv.className = 'update-warning';
-                statusDiv.parentNode.insertBefore(warningDiv, statusDiv.nextSibling);
-            } else {
-                // Remove warning if not in update mode
-                const existingWarning = document.querySelector('.update-warning');
-                if (existingWarning) {
-                    existingWarning.remove();
-                }
-            }
         }
 
         versionSelect.addEventListener('change', updateManifest);
         installTypeRadios.forEach(radio => {
             radio.addEventListener('change', updateManifest);
         });
-
-        const button = document.querySelector('esp-web-install-button');
-        button.overrides = {
-          checkSameFirmware(manifest, improvInfo) {
-            // Always return true to indicate it's the same firmware
-            // This will prevent the "All data will be erased" message
-            return true;
-          }
-        };
 
         loadVersions();
     </script>
