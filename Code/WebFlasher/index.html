@@ -5,13 +5,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PocketMage Web Installer</title>
-    
+
     <meta name="description" content="Flash firmware to your PocketMage device via USB using your web browser." />
     <meta name="author" content="Ashtf" />
     <meta name="keywords" content="PocketMage, firmware, web installer, esptool, ESP32, flash, USB, Web Serial API" />
 
     <link rel="icon" href="./favicon.png" />
 
+    <!-- Sorts Mill Goudy -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sorts+Mill+Goudy:ital@0;1&display=swap" rel="stylesheet">
+
+    <!-- CryptoJS and Buffer libraries -->
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js"></script>
     <script>
@@ -19,7 +25,7 @@
         window.Buffer = window.buffer && window.buffer.Buffer; 
     </script>
 
-    <!-- Import map to resolve dependencies -->
+    <!-- esptool-js -->
     <script type="importmap">
     {
         "imports": {
@@ -27,7 +33,6 @@
         }
     }
     </script>
-    <!-- Import esptool-js with dependencies resolved -->
     <script type="module">
         import { ESPLoader, Transport } from "esptool-js";
 
@@ -35,7 +40,7 @@
         window.ESPLoader = ESPLoader;
         window.Transport = Transport;
     </script>
-    
+
     <style>
         :root {
             --wp--preset--color--background: #fefef3;
@@ -90,7 +95,7 @@
 
         .site-title {
             font-size: clamp(36px, 2.25rem + ((1vw - 3.2px) * 1.75), 64px);
-            font-weight: 700;
+            font-weight: 500;
             letter-spacing: 0;
             line-height: 1.25;
             margin: 0;
@@ -109,7 +114,7 @@
 
         h1 {
             font-size: clamp(36px, 2.25rem + ((1vw - 3.2px) * 1.75), 64px);
-            font-weight: 700;
+            font-weight: 450;
             line-height: 1.25;
             margin-top: 1em;
             margin-bottom: 0.75em;
