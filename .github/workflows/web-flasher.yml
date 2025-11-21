@@ -200,7 +200,7 @@ jobs:
             '{release_tag: $release_tag, run_id: $run_id, run_number: $run_number, sha: $sha, timestamp: $timestamp}' \
             > "$GITHUB_WORKSPACE/docs/deploy-info.json"
 
-      - name: Preserve release artifacts from existing gh-pages (keep all releases, last 2 dev builds)
+      - name: Invoke the Web Flasher Smithy
         run: |
           python "$GITHUB_WORKSPACE/Code/WebFlasher/webflasher.py" \
             --workspace "$GITHUB_WORKSPACE" \
@@ -209,7 +209,7 @@ jobs:
             --gh-pages-dir "$(mktemp -d)" \
             --keep-dev 2
 
-      - name: Copy the Web Flasher Shrine (interface)
+      - name: Transport Web Flasher Artifacts
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/docs"
@@ -218,7 +218,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/Code/WebFlasher/favicon.png" "$GITHUB_WORKSPACE/docs/favicon.png"
           echo "Web flasher interface ready for deployment"
 
-      - name: Deploy to gh-pages (peaceiris/actions-gh-pages)
+      - name: Deploy the Artifacts to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

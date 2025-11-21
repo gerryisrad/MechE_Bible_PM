@@ -264,15 +264,12 @@
             background: #fff;
         }
 
-        /* wrapper keeps the arrow absolutely positioned */
         .select-wrapper {
             position: relative;
             display: inline-block;
             width: 100%;
-            /* change to auto if you want intrinsic width */
         }
 
-        /* reset native appearance so we can style it */
         .select-wrapper select {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -281,7 +278,6 @@
             width: 100%;
             box-sizing: border-box;
             padding: 0.6rem 2.25rem 0.6rem 0.75rem;
-            /* right padding leaves room for arrow */
             font: inherit;
             border: 2px solid currentColor;
             background-color: var(--wp--preset--color--background, #fff);
@@ -289,20 +285,17 @@
             cursor: pointer;
         }
 
-        /* visually hide the focus outline but keep accessibility via custom focus style */
         .select-wrapper select:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(69, 63, 135, 0.12);
         }
 
-        /* arrow using CSS triangles (pointer-events:none so clicks go to the select) */
         .select-wrapper::after {
             content: "";
             pointer-events: none;
             position: absolute;
             top: 50%;
             right: 12px;
-            /* distance from the right edge */
             transform: translateY(-50%);
             width: 0;
             height: 0;
@@ -311,7 +304,6 @@
             border-top: 6px solid var(--wp--preset--color--primary, #353535);
         }
 
-        /* small tweak for disabled selects */
         .select-wrapper select:disabled {
             cursor: not-allowed;
             opacity: 0.7;
@@ -463,7 +455,6 @@
                 <div class="progress-text" id="progress-text">0%</div>
             </div>
             <div class="status-text" id="status">Select a version to begin</div>
-            <!-- New dev build info line (hidden when not a dev build) -->
             <div class="dev-build" id="dev-info" style="display:none;" aria-live="polite"></div>
         </div>
 
