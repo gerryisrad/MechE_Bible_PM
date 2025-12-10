@@ -1,5 +1,5 @@
 #pragma once
-#include <arduino.h>
+#include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <vector>
 #include <GxEPD2_BW.h>
