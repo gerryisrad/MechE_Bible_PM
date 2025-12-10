@@ -39,7 +39,8 @@ void CALENDAR_INIT() {
 }
 
 // Event Data Management
-// TODO: Migrate to a better/global file management system
+// 
+#pragma message "TODO: Migrate to a better/global file management system"
 void updateEventArray() {
   SDActive = true;
   pocketmage::setCpuSpeed(240);

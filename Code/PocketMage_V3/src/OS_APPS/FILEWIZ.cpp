@@ -129,13 +129,14 @@ String renderWizMini(String folder, int8_t scrollDelta) {
     SDActive = false;
   }
 
+  #pragma message "TODO: Need to refresh directory here."
   // Reload directory if file changed
   /*if (refreshFiles) {
     SDActive = true;
     pocketmage::setCpuSpeed(240);
     delay(50);
 
-    // TODO: Need to refresh directory here.
+    // reload here
 
     if (SAVE_POWER)
     pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
@@ -253,7 +254,7 @@ String fileWizardMini(bool allowRecentSelect, String rootDir) {
     } 
     // 'n' recieved (new folder)
     else if (inchar == 'n' || inchar == 'N' || inchar == '/') {
-      // TODO: populate
+      #pragma message "TODO: populate"
     }
     // Exit received
     else if (inchar == 12) {

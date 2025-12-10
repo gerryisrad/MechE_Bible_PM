@@ -25,6 +25,7 @@ bool mscEnabled         = false;
 bool sinkEnabled        = false;
 volatile bool SDActive  = false;
 volatile int battState = 0;           // Bary state
+bool doNowLater = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 //            Use this function in apps to return to PocketMage OS           //
