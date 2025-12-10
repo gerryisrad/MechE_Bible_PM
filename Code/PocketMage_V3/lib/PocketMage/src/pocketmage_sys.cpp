@@ -25,6 +25,7 @@ bool mscEnabled         = false;
 bool sinkEnabled        = false;
 volatile bool SDActive  = false;
 volatile int battState = 0;           // Bary state
+bool doNowLater = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 //            Use this function in apps to return to PocketMage OS           //
@@ -139,6 +140,13 @@ namespace pocketmage {
 
             if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
             SDActive = false;
+        switch (CurrentAppState) {
+            case TXT:
+            if (SLEEPMODE == "TEXT" && SD().getEditingFile() != "") {
+                pocketmage::power::deepSleep(true);
+            } else
+                pocketmage::power::deepSleep();
+            break;
 
             EINK().multiPassRefresh(2);
         } else {
@@ -153,6 +161,29 @@ namespace pocketmage {
         // Put E-Ink to sleep
         display.hibernate();
 
+        // Sleep the device
+        BZ().playJingle(Jingles::Shutdown);
+        esp_deep_sleep_start();
+        }
+    } else {
+        CLOCK().setPrevTimeMillis(millis());
+    }
+
+    // Power Button Event sleep
+    if (PWR_BTN_event && CurrentHOMEState != NOWLATER) {
+        PWR_BTN_event = false;
+
+        // Save current work:
+        OLED().oledWord("Saving Work");
+        //pocketmage::file::saveFile();
+        String savePath = SD().getEditingFile();
+        if (savePath != "" && savePath != "-" && savePath != "/temp.txt" && fileLoaded) {
+            if (!savePath.startsWith("/")) savePath = "/" + savePath;
+            saveMarkdownFile(SD().getEditingFile());
+        }
+
+
+        if ((digitalRead(CHRG_SENS) == HIGH) && doNowLater) {
         // Save last state
         prefs.begin("PocketMage", false);
         prefs.putInt("CurrentAppState", static_cast<int>(CurrentAppState));
@@ -160,6 +191,115 @@ namespace pocketmage {
         prefs.end();
         // Sleep the ESP32
         esp_deep_sleep_start();
+
+        CurrentAppState = HOME;
+        CurrentHOMEState = NOWLATER;
+        updateTaskArray();
+        sortTasksByDueDate(tasks);
+
+        u8g2.setPowerSave(1);
+        OLEDPowerSave = true;
+        disableTimeout = true;
+        newState = true;
+
+        // Shutdown Jingle
+        BZ().playJingle(Jingles::Shutdown);
+
+        // Clear screen
+        display.setFullWindow();
+        display.fillScreen(GxEPD_WHITE);
+
+        } else {
+        switch (CurrentAppState) {
+            case TXT:
+            if (SLEEPMODE == "TEXT" && SD().getEditingFile() != "") {
+                EINK().setFullRefreshAfter(FULL_REFRESH_AFTER + 1);
+                display.setFullWindow();
+                EINK().einkTextDynamic(true, true);
+                display.setFont(&FreeMonoBold9pt7b);
+
+                display.fillRect(0, display.height() - 26, display.width(), 26, GxEPD_WHITE);
+                display.drawRect(0, display.height() - 20, display.width(), 20, GxEPD_BLACK);
+                display.setCursor(4, display.height() - 6);
+                //display.drawBitmap(display.width() - 30, display.height() - 20, KBStatusallArray[6], 30,
+                //                20, GxEPD_BLACK);
+                EINK().statusBar(SD().getEditingFile(), true);
+
+                display.fillRect(320 - 86, 240 - 52, 87, 52, GxEPD_WHITE);
+                display.drawBitmap(320 - 86, 240 - 52, sleep1, 87, 52, GxEPD_BLACK);
+
+                pocketmage::power::deepSleep(true);
+            }
+            // Sleep device normally
+            else
+                pocketmage::power::deepSleep();
+            break;
+            default:
+            pocketmage::power::deepSleep();
+            break;
+        }
+        }
+
+    } else if (PWR_BTN_event && CurrentHOMEState == NOWLATER) {
+        // Load last state
+        /*prefs.begin("PocketMage", true);
+        SD().setEditingFile(prefs.getString("editingFile", "");
+        if (HOME_ON_BOOT) CurrentAppState = HOME;
+        else CurrentAppState = static_cast<AppState>(prefs.getInt("CurrentAppState", HOME));
+        prefs.end();*/
+        pocketmage::power::loadState();
+        keypad.flush();
+
+        CurrentHOMEState = HOME_HOME;
+        PWR_BTN_event = false;
+        if (OLEDPowerSave) {
+        u8g2.setPowerSave(0);
+        OLEDPowerSave = false;
+        }
+        display.fillScreen(GxEPD_WHITE);
+        EINK().forceSlowFullUpdate(true);
+
+        // Play startup jingle
+        BZ().playJingle(Jingles::Startup);
+
+        EINK().refresh();
+        delay(200);
+        newState = true;
+    }
+    }
+    
+    void setCpuSpeed(int newFreq) {
+    // Return early if the frequency is already set
+    if (getCpuFrequencyMhz() == newFreq)
+        return;
+
+    int validFreqs[] = {240, 160, 80, 40, 20, 10};
+    bool isValid = false;
+
+    for (int i = 0; i < sizeof(validFreqs) / sizeof(validFreqs[0]); i++) {
+        if (newFreq == validFreqs[i]) {
+        isValid = true;
+        break;
+        }
+    }
+
+    if (isValid) {
+        setCpuFrequencyMhz(newFreq);
+        ESP_LOGI(TAG, "CPU Speed changed to: %d MHz", newFreq);
+    }
+    }
+}    // namespace pocketmage::time
+
+namespace pocketmage::power{
+
+    void deepSleep(bool alternateScreenSaver) {
+    // Put OLED to sleep
+    u8g2.setPowerSave(1);
+
+    // Stop the einkHandler task
+    if (einkHandlerTaskHandle != NULL) {
+        vTaskDelete(einkHandlerTaskHandle);
+        einkHandlerTaskHandle = NULL;
     }
 
     // returns true if reboot flag set, false if skipped by user
@@ -211,6 +351,42 @@ namespace pocketmage {
             prefs.end();
         }
         ESP_LOGE(TAG, "In pocketmageOS, skipping Checking OTA reboot flag");
+        // Use standard screensavers
+        else {
+            int numScreensavers = sizeof(ScreenSaver_allArray) / sizeof(ScreenSaver_allArray[0]);
+            int randomScreenSaver_ = esp_random() % numScreensavers;
+
+            display.drawBitmap(0, 0, ScreenSaver_allArray[randomScreenSaver_], 320, 240, GxEPD_BLACK);
+        }
+
+
+        if (SAVE_POWER) setCpuFrequencyMhz(POWER_SAVE_FREQ);
+        SDActive = false;
+
+        EINK().multiPassRefresh(2);
+    } else {
+        // Display alternate screensaver
+        EINK().forceSlowFullUpdate(true);
+        EINK().refresh();
+        delay(100);
+    }
+
+    // Put E-Ink to sleep
+    display.hibernate();
+
+    // Save last state
+    prefs.begin("PocketMage", false);
+    prefs.putInt("CurrentAppState", static_cast<int>(CurrentAppState));
+    prefs.putString("editingFile", SD().getEditingFile());
+    prefs.end();
+
+    // Shut down BMS
+    PowerSystem.setBoost(false);
+    PowerSystem.setUSBControlBMS();
+    PowerSystem.setCCMode(0b000); // Set CC mode: 000 = Sink only
+
+    // Sleep the ESP32
+    esp_deep_sleep_start();
     }
     
     void IRAM_ATTR PWR_BTN_irq() {
