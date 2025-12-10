@@ -790,7 +790,7 @@ void PocketmageKB::checkUSBKB() {
     if (PowerSystem.getBoostState(boostOn) && boostOn) {
       PowerSystem.setBoost(false);
       detachInterrupt(digitalPinToInterrupt(PWR_BTN));
-      attachInterrupt(digitalPinToInterrupt(PWR_BTN), pocketmage::power::PWR_BTN_irq, FALLING);
+      attachInterrupt(digitalPinToInterrupt(PWR_BTN), pocketmage::PWR_BTN_irq, FALLING);
     }
 
     PowerSystem.setUSBControlBMS();
