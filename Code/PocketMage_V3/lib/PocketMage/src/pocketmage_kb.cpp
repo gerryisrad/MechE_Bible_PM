@@ -670,7 +670,7 @@ char keysArraySHFT[4][10] = {
 };
 char keysArrayFN[4][10] = {
     { '1', '2', '3', '4', '5', '6', '7',  '8',  '9', '0' },
-    { '#', '!', '$', ':', ';', '(', ')', '&', '\"',   8 },
+    { '#', '!', '$', ':', ';', '(', ')',  '&', '\"',   8 },
     {  14, '%', '_', '+', '-', '*', '/',  '?',  ',',  13 },
     {   0,  17,  18, ' ', ' ', ' ',  12,    7,    6,   0 }
 };
@@ -734,7 +734,7 @@ char PocketmageKB::updateKeypress() {
       //return currentKB[k/10][k%10];
       if ((k/10) < 4) {
         //Key was pressed, reset timeout counter
-        if (prevTimeMillis_) *prevTimeMillis_ = millis();
+        CLOCK().setPrevTimeMillis(millis());
 
         //Return Key
         switch (kbState_) {

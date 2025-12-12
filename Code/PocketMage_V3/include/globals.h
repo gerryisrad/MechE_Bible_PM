@@ -72,6 +72,7 @@ String fileWizardMini(bool allowRecentSelect = false, String rootDir = "/");
 
 // <TXT.cpp>
 void TXT_INIT();
+void TXT_INIT_JournalMode();
 void processKB_TXT_NEW();
 void einkHandler_TXT_NEW();
 void saveMarkdownFile(const String& path);
@@ -115,6 +116,7 @@ void einkHandler_LEXICON();
 void JOURNAL_INIT();
 void processKB_JOURNAL();
 void einkHandler_JOURNAL();
+String getCurrentJournal();
 
 // <APPLOADER.cpp>
 void APPLOADER_INIT();
