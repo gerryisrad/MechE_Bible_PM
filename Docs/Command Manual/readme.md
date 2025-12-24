@@ -26,6 +26,7 @@ Many other commands can be done from the homescreen, including all of the settin
 - **(FN) + ( < )** | Exit app
 - **(FN) + ( > )** | Save document
 - **(FN) + ( o )** | Enter filesystem (loading files)
+- **(SHFT) + ( o )** | New blank text document
 - **(FN) + (Key)** | FN layer keymapping (legends on the PCB)
 - **(SHFT) + (key)** | Capital letter
 - **(ENTER)** | Create a new line
