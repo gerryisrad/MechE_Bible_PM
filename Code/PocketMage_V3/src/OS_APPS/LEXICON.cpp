@@ -1,8 +1,65 @@
 
 #include <globals.h>
-#if !OTA_APP // POCKETMAGE_OS
-enum LexState {MENU, DEF};
+#if !OTA_APP  // POCKETMAGE_OS
+enum LexState { MENU, DEF };
 LexState CurrentLexState = MENU;
+
+// -----------------------------
+// Nth-definition helpers
+// -----------------------------
+
+struct LexQuery {
+  String word;
+  int requestedIndex;  // -1 if not specified, 0-based otherwise
+};
+
+LexQuery parseLexQuery(const String& input) {
+  LexQuery q;
+  q.word = input;
+  q.requestedIndex = -1;
+
+  String trimmed = input;
+  trimmed.trim();
+  if (trimmed.length() == 0)
+    return q;
+
+  int lastSpace = trimmed.lastIndexOf(' ');
+  if (lastSpace == -1) {
+    q.word = trimmed;
+    return q;
+  }
+
+  String maybeNumber = trimmed.substring(lastSpace + 1);
+  bool isNumber = true;
+  for (size_t i = 0; i < maybeNumber.length(); i++) {
+    if (!isDigit(maybeNumber[i])) {
+      isNumber = false;
+      break;
+    }
+  }
+
+  if (isNumber) {
+    q.word = trimmed.substring(0, lastSpace);
+    q.word.trim();
+    int n = maybeNumber.toInt();
+    if (n > 0)
+      q.requestedIndex = n - 1;  // convert to 0-based
+  } else {
+    q.word = trimmed;
+  }
+
+  return q;
+}
+
+int clampDefinitionIndex(int idx, int total) {
+  if (total <= 0)
+    return 0;
+  if (idx < 0)
+    return 0;
+  if (idx >= total)
+    return total - 1;
+  return idx;
+}
 
 static String currentLine = "";
 
@@ -19,7 +76,7 @@ void LEXICON_INIT() {
   definitionIndex = 0;
 }
 
-void loadDefinitions(String word) {
+void loadDefinitions(String input) {
   OLED().oledWord("Loading Definitions");
   SDActive = true;
   pocketmage::setCpuSpeed(240);
@@ -27,10 +84,24 @@ void loadDefinitions(String word) {
 
   defList.clear();  // Clear previous results
 
-  if (word.length() == 0 || SD().getNoSD()) return;
+  // Parse query (word + optional index)
+  LexQuery query = parseLexQuery(input);
+  String word = query.word;
+
+  if (word.length() == 0 || SD().getNoSD()) {
+    SDActive = false;
+    if (SAVE_POWER)
+      pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    return;
+  }
 
   char firstChar = tolower(word[0]);
-  if (firstChar < 'a' || firstChar > 'z') return;
+  if (firstChar < 'a' || firstChar > 'z') {
+    SDActive = false;
+    if (SAVE_POWER)
+      pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    return;
+  }
 
   String filePath = "/dict/" + String((char)toupper(firstChar)) + ".txt";
 
@@ -38,6 +109,9 @@ void loadDefinitions(String word) {
   if (!file) {
     OLED().oledWord("Missing Dictionary!");
     delay(2000);
+    SDActive = false;
+    if (SAVE_POWER)
+      pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
     return;
   }
 
@@ -46,10 +120,12 @@ void loadDefinitions(String word) {
   while (file.available()) {
     String line = file.readStringUntil('\n');
     line.trim();
-    if (line.length() == 0) continue;
+    if (line.length() == 0)
+      continue;
 
     int defSplit = line.indexOf(')');
-    if (defSplit == -1) continue;
+    if (defSplit == -1)
+      continue;
 
     // Extract key and definition
     String key = line.substring(0, defSplit + 1);
@@ -61,9 +137,8 @@ void loadDefinitions(String word) {
 
     if (keyLower.startsWith(word)) {
       defList.push_back({key, def});
-    }
-    else if (defList.size() > 0) {
-      // No more definitions
+    } else if (!defList.empty()) {
+      // No more definitions for this word
       break;
     }
   }
@@ -73,15 +148,22 @@ void loadDefinitions(String word) {
   if (defList.empty()) {
     OLED().oledWord("No definitions found");
     delay(2000);
-  }
-  else {
+  } else {
     CurrentLexState = DEF;
     KB().setKeyboardState(NORMAL);
-    definitionIndex = 0;
+
+    if (query.requestedIndex >= 0) {
+      definitionIndex = clampDefinitionIndex(query.requestedIndex, defList.size());
+
+    } else {
+      definitionIndex = 0;
+    }
+
     newState = true;
   }
 
-  if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+  if (SAVE_POWER)
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
   SDActive = false;
 }
 
@@ -90,13 +172,14 @@ void processKB_LEXICON() {
 
   switch (CurrentLexState) {
     case MENU:
-      if (currentMillis - KBBounceMillis >= KB_COOLDOWN) {  
+      if (currentMillis - KBBounceMillis >= KB_COOLDOWN) {
         char inchar = KB().updateKeypress();
         // HANDLE INPUTS
-        //No char recieved
-        if (inchar == 0);   
-        //CR Recieved
-        else if (inchar == 13) {                          
+        // No char recieved
+        if (inchar == 0)
+          ;
+        // CR Recieved
+        else if (inchar == 13) {
           loadDefinitions(currentLine);
           currentLine = "";
         }  
@@ -120,16 +203,16 @@ void processKB_LEXICON() {
             KB().setKeyboardState(FUNC);
           }
         }
-        //Space Recieved
-        else if (inchar == 32) {                                  
+        // Space Recieved
+        else if (inchar == 32) {
           currentLine += " ";
         }
-        //ESC / CLEAR Recieved
-        else if (inchar == 20) {                                  
+        // ESC / CLEAR Recieved
+        else if (inchar == 20) {
           currentLine = "";
         }
-        //BKSP Recieved
-        else if (inchar == 8) {                  
+        // BKSP Recieved
+        else if (inchar == 8) {
           if (currentLine.length() > 0) {
             currentLine.remove(currentLine.length() - 1);
           }
@@ -137,18 +220,18 @@ void processKB_LEXICON() {
         // Home recieved
         else if (inchar == 12) {
           HOME_INIT();
-        }
-        else {
+        } else {
           currentLine += inchar;
-          if (inchar >= 48 && inchar <= 57) {}  //Only leave FN on if typing numbers
+          if (inchar >= 48 && inchar <= 57) {
+          }  // Only leave FN on if typing numbers
           else if (KB().getKeyboardState() != NORMAL) {
             KB().setKeyboardState(NORMAL);
           }
         }
 
         currentMillis = millis();
-        //Make sure oled only updates at OLED_MAX_FPS
-        if (currentMillis - OLEDFPSMillis >= (1000/OLED_MAX_FPS)) {
+        // Make sure oled only updates at OLED_MAX_FPS
+        if (currentMillis - OLEDFPSMillis >= (1000 / OLED_MAX_FPS)) {
           OLEDFPSMillis = currentMillis;
           OLED().oledLine(currentLine, false);
         }
@@ -156,13 +239,14 @@ void processKB_LEXICON() {
       break;
 
     case DEF:
-      if (currentMillis - KBBounceMillis >= KB_COOLDOWN) {  
+      if (currentMillis - KBBounceMillis >= KB_COOLDOWN) {
         char inchar = KB().updateKeypress();
         // HANDLE INPUTS
-        //No char recieved
-        if (inchar == 0);   
-        //CR Recieved
-        else if (inchar == 13) {                          
+        // No char recieved
+        if (inchar == 0)
+          ;
+        // CR Recieved
+        else if (inchar == 13) {
           loadDefinitions(currentLine);
           currentLine = "";
         }                                      
@@ -186,16 +270,16 @@ void processKB_LEXICON() {
             KB().setKeyboardState(FUNC);
           }
         }
-        //Space Recieved
-        else if (inchar == 32) {                                  
+        // Space Recieved
+        else if (inchar == 32) {
           currentLine += " ";
         }
-        //ESC / CLEAR Recieved
-        else if (inchar == 20) {                                  
+        // ESC / CLEAR Recieved
+        else if (inchar == 20) {
           currentLine = "";
         }
-        //BKSP Recieved
-        else if (inchar == 8) {                  
+        // BKSP Recieved
+        else if (inchar == 8) {
           if (currentLine.length() > 0) {
             currentLine.remove(currentLine.length() - 1);
           }
@@ -208,27 +292,30 @@ void processKB_LEXICON() {
         // LEFT Recieved
         else if (inchar == 19) {
           definitionIndex--;
-          if (definitionIndex < 0) definitionIndex = 0;
+          if (definitionIndex < 0)
+            definitionIndex = 0;
           newState = true;
         }
         // RIGHT Received
         else if (inchar == 21) {
           definitionIndex++;
-          if (definitionIndex >= defList.size()) definitionIndex = defList.size() - 1;
+          if (definitionIndex >= defList.size())
+            definitionIndex = defList.size() - 1;
           newState = true;
         }
 
         else {
           currentLine += inchar;
-          if (inchar >= 48 && inchar <= 57) {}  //Only leave FN on if typing numbers
+          if (inchar >= 48 && inchar <= 57) {
+          }  // Only leave FN on if typing numbers
           else if (KB().getKeyboardState() != NORMAL) {
             KB().setKeyboardState(NORMAL);
           }
         }
 
         currentMillis = millis();
-        //Make sure oled only updates at OLED_MAX_FPS
-        if (currentMillis - OLEDFPSMillis >= (1000/OLED_MAX_FPS)) {
+        // Make sure oled only updates at OLED_MAX_FPS
+        if (currentMillis - OLEDFPSMillis >= (1000 / OLED_MAX_FPS)) {
           OLEDFPSMillis = currentMillis;
           OLED().oledLine(currentLine, false);
         }
@@ -276,6 +363,5 @@ void einkHandler_LEXICON() {
       }
       break;
   }
-  
 }
 #endif
