@@ -75,6 +75,16 @@ void LEXICON_INIT() {
   KB().setKeyboardState(NORMAL);
   newState = true;
   definitionIndex = 0;
+
+  // Verify that dict is installed
+  pocketmage::setCpuSpeed(240);
+  delay(50);
+  if (!SD_MMC.exists("/dict/A.txt")) {
+    OLED().oledWord("Please install dict from GitHub!");
+    delay(5000);
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    HOME_INIT();
+  }
 }
 
 void loadDefinitions(String input) {
