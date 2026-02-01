@@ -284,11 +284,6 @@ void processKB_JOURNAL() {
             KB().setKeyboardState(FUNC);
           }
         }
-        //ESC / CLEAR Recieved
-        else if (inchar == 29) {                                  
-          currentLine = "";
-          cursor_pos = 0;
-        }
         //BKSP Recieved
         else if (inchar == 8) {                  
           if (currentLine.length() > 0 && cursor_pos != 0) {
@@ -314,14 +309,49 @@ void processKB_JOURNAL() {
         }
         // CENTER
         else if (inchar == 20) {
-          cursor_pos = currentLine.length();
         }
-        // Home recieved
-        else if (inchar == 12) {
+        // SHIFT+LEFT
+        else if (inchar == 28) {
+          cursor_pos = 0;
+          KB().setKeyboardState(NORMAL);
+        }
+        // SHIFT+RIGHT
+        else if (inchar == 30) {
+          cursor_pos = currentLine.length();
+          KB().setKeyboardState(NORMAL);
+        }
+        // SHIFT+CENTER
+        else if (inchar == 29) {
+          KB().setKeyboardState(NORMAL);
+        }
+        // FN+LEFT
+        else if (inchar == 12 ) {
           HOME_INIT();
         }
-        else if (inchar == 9 || inchar == 28 || inchar == 30 || inchar == 14 || inchar == 7 || inchar == 6) {
-          //ignore unprintable keys we don't use
+        // FN+RIGHT
+        else if (inchar == 6) {
+          KB().setKeyboardState(NORMAL);
+        }
+        // FN+CENTER
+        else if (inchar == 7) {
+          currentLine = "";
+          cursor_pos = 0;
+          KB().setKeyboardState(NORMAL);
+        }
+        // FN+SHIFT+LEFT
+        else if (inchar == 24) {
+          KB().setKeyboardState(NORMAL);
+        }
+        // FN+SHIFT+RIGHT
+        else if (inchar == 26) {
+          KB().setKeyboardState(NORMAL);
+        }
+        // FN+SHIFT+CENTER
+        else if (inchar == 25) {
+          KB().setKeyboardState(NORMAL);
+        }
+        // TAB, SHIFT+TAB / FN+TAB, FN+SHIFT+TAB
+        else if (inchar == 9 || inchar == 14) {
           KB().setKeyboardState(NORMAL);
         }
         else {
