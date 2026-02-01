@@ -199,7 +199,7 @@ void loadState(bool changeState) {
     SYSTEM_CLOCK = prefs.getBool("SYSTEM_CLOCK", true);
     SHOW_YEAR = prefs.getBool("SHOW_YEAR", true);
     SAVE_POWER = prefs.getBool("SAVE_POWER", true);
-    ALLOW_NO_MICROSD = prefs.getBool("ALLOW_NO_SD", false);
+    ALLOW_NO_MICROSD = prefs.getBool("ALLOW_NO_SD", true);
     SD().setEditingFile(prefs.getString("editingFile", ""));
     HOME_ON_BOOT = prefs.getBool("HOME_ON_BOOT", false);
     OLED_BRIGHTNESS = prefs.getInt("OLED_BRIGHTNESS", 255);
