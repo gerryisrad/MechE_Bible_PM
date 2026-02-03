@@ -12,6 +12,9 @@
 // OTA_APP: remove assets.h + assets.cpp, and OS_APPS/, follow OTA_APP: tag instructions in codebase
 #include <assets.h> // OTA_APP: remove
 
+// ===================== SPI BUSSES =====================
+extern SPIClass sdSPI;
+extern SPIClass screenSPI;
 
 // ===================== SYSTEM STATE =====================
 extern Preferences prefs;                       // NVS preferencesv

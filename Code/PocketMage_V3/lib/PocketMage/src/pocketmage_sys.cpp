@@ -235,7 +235,7 @@ void PocketMage_INIT(){
   // Serial, I2C, SPI
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL);
-  SPI.begin(SPI_SCK, -1, SPI_MOSI, -1);
+  screenSPI.begin(SPI_SCK, -1, SPI_MOSI, -1);
 
   // WAKE INTERRUPT SETUP
   pinMode(KB_IRQ, INPUT);

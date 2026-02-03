@@ -7,6 +7,7 @@
 #pragma region COMMON
 
 #include <pocketmage.h>
+#include <globals.h>
 #include <config.h> // for FULL_REFRESH_AFTER
 #include <SD_MMC.h>
 #include <SD.h>
@@ -20,8 +21,6 @@ extern bool SAVE_POWER;
 static PocketmageSDMMC pm_sdmmc;
 static PocketmageSDSPI pm_sdspi;
 static PocketmageSDAUTO pm_sdauto;
-
-SPIClass sdSPI(1);
 
 // Helpers
 static int countVisibleChars(String input) {
@@ -175,6 +174,8 @@ void setupSD() {
               return;
           }
       }
+      OLED().oledWord("SD Started In Compatibility Mode", false, false);
+      delay(2000);
 
       // ---------- Filesystem setup ----------
       const char* dirs[] = {"/sys", "/notes", "/journal", "/dict", "/apps",
