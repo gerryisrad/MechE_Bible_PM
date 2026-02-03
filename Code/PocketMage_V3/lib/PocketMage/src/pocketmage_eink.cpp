@@ -141,7 +141,7 @@ void PocketmageEink::einkTextDynamic(bool doFull, bool noRefresh) {
   }
   
 
-  drawStatusBar(String("L:") + String(allLines.size()) + " " + SD().getEditingFile());
+  drawStatusBar(String("L:") + String(allLines.size()) + " " + PM_SD().getEditingFile());
 }
 
 void PocketmageEink::resetDisplay(bool clearScreen, uint16_t color) {

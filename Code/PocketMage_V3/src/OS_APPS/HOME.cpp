@@ -35,14 +35,14 @@ void commandSelect(String command) {
     command = removeChar(command, ' ');
     command = removeChar(command, '-');
     keypad.disableInterrupts();
-    SD().listDir(SD_MMC, "/");
+    PM_SD().listDir(SD_MMC, "/");
     keypad.enableInterrupts();
 
     for (uint8_t i = 0; i < MAX_FILES; i++) {
-      String lowerFileName = SD().getFilesListIndex(i);
+      String lowerFileName = PM_SD().getFilesListIndex(i);
       lowerFileName.toLowerCase();
       if (command == lowerFileName || (command+".txt") == lowerFileName || ("/"+command+".txt") == lowerFileName) {
-        SD().setWorkingFile(SD().getFilesListIndex(i));
+        PM_SD().setWorkingFile(PM_SD().getFilesListIndex(i));
         FILEWIZ_INIT();
         return;
       }
@@ -54,14 +54,14 @@ void commandSelect(String command) {
     command = removeChar(command, ' ');
     command = removeChar(command, '/');
     keypad.disableInterrupts();
-    SD().listDir(SD_MMC, "/");
+    PM_SD().listDir(SD_MMC, "/");
     keypad.enableInterrupts();
 
     for (uint8_t i = 0; i < MAX_FILES; i++) {
-      String lowerFileName = SD().getFilesListIndex(i);
+      String lowerFileName = PM_SD().getFilesListIndex(i);
       lowerFileName.toLowerCase();
       if (command == lowerFileName || (command+".txt") == lowerFileName || ("/"+command+".txt") == lowerFileName) {
-        SD().setEditingFile(SD().getFilesListIndex(i));
+        PM_SD().setEditingFile(PM_SD().getFilesListIndex(i));
         TXT_INIT();
         return;
       }

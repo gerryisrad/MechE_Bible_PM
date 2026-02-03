@@ -82,7 +82,7 @@ void setupSD() {
     if (ALLOW_NO_MICROSD) {
       OLED().oledWord("All Work Will Be Lost!", false, false);
       delay(5000);
-      SD().setNoSD(true);
+      PM_SD().setNoSD(true);
       return;
     } else {
       OLED().oledWord("Insert SD Card and Reboot!", false, false);
@@ -299,11 +299,11 @@ void setupSD() {
 }
 
 // Access for other apps
-PocketmageSD& SD() { return pm_sd; }
+PocketmageSD& PM_SD() { return pm_sd; }
 
     
 void PocketmageSD::saveFile() {
-  if (SD().getNoSD()) {
+  if (PM_SD().getNoSD()) {
       OLED().oledWord("SAVE FAILED - No SD!");
       delay(5000);
       return;
@@ -315,17 +315,17 @@ void PocketmageSD::saveFile() {
       String textToSave = vectorToString();
       ESP_LOGV(TAG, "Text to save: %s", textToSave.c_str());
 
-      if (SD().getEditingFile() == "" || SD().getEditingFile() == "-")
-      SD().setEditingFile("/temp.txt");
+      if (PM_SD().getEditingFile() == "" || PM_SD().getEditingFile() == "-")
+      PM_SD().setEditingFile("/temp.txt");
       keypad.disableInterrupts();
-      if (!SD().getEditingFile().startsWith("/"))
-      SD().setEditingFile("/" + SD().getEditingFile());
+      if (!PM_SD().getEditingFile().startsWith("/"))
+      PM_SD().setEditingFile("/" + PM_SD().getEditingFile());
       //OLED().oledWord("Saving File: "+ editingFile);
-      SD().writeFile(SD_MMC, (SD().getEditingFile()).c_str(), textToSave.c_str());
+      PM_SD().writeFile(SD_MMC, (PM_SD().getEditingFile()).c_str(), textToSave.c_str());
       //OLED().oledWord("Saved: "+ editingFile);
 
       // Write MetaData
-      SD().writeMetadata(SD().getEditingFile());
+      PM_SD().writeMetadata(PM_SD().getEditingFile());
 
       // delay(1000);
       keypad.enableInterrupts();
@@ -355,7 +355,7 @@ void PocketmageSD::writeMetadata(const String& path) {
   String fileSizeStr = String(fileSizeBytes) + " Bytes";
 
   // Get line and char counts
-  int charCount = countVisibleChars(SD().readFileToString(SD_MMC, path.c_str()));
+  int charCount = countVisibleChars(PM_SD().readFileToString(SD_MMC, path.c_str()));
 
   String charStr = String(charCount) + " Char";
   // Get current time from RTC
@@ -409,7 +409,7 @@ void PocketmageSD::loadFile(bool showOLED) {
   pocketmage::setCpuSpeed(240);
   delay(50);
 
-  if (SD().getNoSD()) {
+  if (PM_SD().getNoSD()) {
       OLED().oledWord("LOAD FAILED - No SD!");
       delay(5000);
       return;
@@ -421,9 +421,9 @@ void PocketmageSD::loadFile(bool showOLED) {
       keypad.disableInterrupts();
       if (showOLED)
       OLED().oledWord("Loading File");
-      if (!SD().getEditingFile().startsWith("/"))
-      SD().setEditingFile("/" + SD().getEditingFile());
-      String textToLoad = SD().readFileToString(SD_MMC, (SD().getEditingFile()).c_str());
+      if (!PM_SD().getEditingFile().startsWith("/"))
+      PM_SD().setEditingFile("/" + PM_SD().getEditingFile());
+      String textToLoad = PM_SD().readFileToString(SD_MMC, (PM_SD().getEditingFile()).c_str());
       ESP_LOGV(TAG, "Text to load: %s", textToLoad.c_str());
 
       stringToVector(textToLoad);
@@ -439,7 +439,7 @@ void PocketmageSD::loadFile(bool showOLED) {
 }
   
 void PocketmageSD::delFile(String fileName) {
-  if (SD().getNoSD()) {
+  if (PM_SD().getNoSD()) {
       OLED().oledWord("DELETE FAILED - No SD!");
       delay(5000);
       return;
@@ -452,11 +452,11 @@ void PocketmageSD::delFile(String fileName) {
       // OLED().oledWord("Deleting File: "+ fileName);
       if (!fileName.startsWith("/"))
       fileName = "/" + fileName;
-      SD().deleteFile(SD_MMC, fileName.c_str());
+      PM_SD().deleteFile(SD_MMC, fileName.c_str());
       // OLED().oledWord("Deleted: "+ fileName);
 
       // Delete MetaData
-      SD().deleteMetadata(fileName);
+      PM_SD().deleteMetadata(fileName);
 
       delay(1000);
       keypad.enableInterrupts();
@@ -509,7 +509,7 @@ void PocketmageSD::deleteMetadata(String path) {
   }
   
 void PocketmageSD::renFile(String oldFile, String newFile) {
-  if (SD().getNoSD()) {
+  if (PM_SD().getNoSD()) {
       OLED().oledWord("RENAME FAILED - No SD!");
       delay(5000);
       return;
@@ -524,12 +524,12 @@ void PocketmageSD::renFile(String oldFile, String newFile) {
       oldFile = "/" + oldFile;
       if (!newFile.startsWith("/"))
       newFile = "/" + newFile;
-      SD().renameFile(SD_MMC, oldFile.c_str(), newFile.c_str());
+      PM_SD().renameFile(SD_MMC, oldFile.c_str(), newFile.c_str());
       OLED().oledWord(oldFile + " -> " + newFile);
       delay(1000);
 
       // Update MetaData
-      SD().renMetadata(oldFile, newFile);
+      PM_SD().renMetadata(oldFile, newFile);
 
       keypad.enableInterrupts();
       if (SAVE_POWER)
@@ -594,7 +594,7 @@ void PocketmageSD::renMetadata(String oldPath, String newPath) {
   }
   
   void PocketmageSD::copyFile(String oldFile, String newFile) {
-  if (SD().getNoSD()) {
+  if (PM_SD().getNoSD()) {
       OLED().oledWord("COPY FAILED - No SD!");
       delay(5000);
       return;
@@ -609,12 +609,12 @@ void PocketmageSD::renMetadata(String oldPath, String newPath) {
       oldFile = "/" + oldFile;
       if (!newFile.startsWith("/"))
       newFile = "/" + newFile;
-      String textToLoad = SD().readFileToString(SD_MMC, (oldFile).c_str());
-      SD().writeFile(SD_MMC, (newFile).c_str(), textToLoad.c_str());
+      String textToLoad = PM_SD().readFileToString(SD_MMC, (oldFile).c_str());
+      PM_SD().writeFile(SD_MMC, (newFile).c_str(), textToLoad.c_str());
       OLED().oledWord("Saved: " + newFile);
 
       // Write MetaData
-      SD().writeMetadata(newFile);
+      PM_SD().writeMetadata(newFile);
 
       delay(1000);
       keypad.enableInterrupts();
@@ -626,7 +626,7 @@ void PocketmageSD::renMetadata(String oldPath, String newPath) {
 }
   
 void PocketmageSD::appendToFile(String path, String inText) {
-  if (SD().getNoSD()) {
+  if (PM_SD().getNoSD()) {
       OLED().oledWord("OP FAILED - No SD!");
       delay(5000);
       return;
@@ -636,10 +636,10 @@ void PocketmageSD::appendToFile(String path, String inText) {
       delay(50);
 
       keypad.disableInterrupts();
-      SD().appendFile(SD_MMC, path.c_str(), inText.c_str());
+      PM_SD().appendFile(SD_MMC, path.c_str(), inText.c_str());
 
       // Write MetaData
-      SD().writeMetadata(path);
+      PM_SD().writeMetadata(path);
 
       keypad.enableInterrupts();
 

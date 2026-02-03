@@ -71,4 +71,4 @@ private:
 };
 
 void setupSD();
-PocketmageSD& SD();
+PocketmageSD& PM_SD();
