@@ -206,6 +206,13 @@ void setupSD() {
     "- sleep button to wake\n";
 
   // ---------- SDMMC mode ----------
+  // Load compatibility mode
+  prefs.begin("PocketMage", true);
+  SD_SPI_COMPATIBILITY = prefs.getBool("SD_SPI_CMPT", false);
+  prefs.end();
+  Serial.print("SD_SPI_CMPT" + String(SD_SPI_COMPATIBILITY));
+  delay(100);
+
   if (!SD_SPI_COMPATIBILITY) {
     // Set global filesystem
     global_fs = &SD_MMC;
@@ -243,6 +250,13 @@ void setupSD() {
             );
         } else {
           OLED().oledWord("SD Not Detected! [START_FAIL]", false, false);
+          delay(3000);
+          OLED().oledWord("Entering Compatibility Mode", false, false);
+          prefs.begin("PocketMage", false);
+          prefs.putBool("SD_SPI_CMPT", true);
+          prefs.end();
+          delay(3000);
+          esp_restart();
         }
 
         delay(5000);
@@ -260,6 +274,10 @@ void setupSD() {
           return;
         }
     }
+
+    prefs.begin("PocketMage", false);
+    prefs.putBool("SD_SPI_CMPT", false);
+    prefs.end();
 
     // ---------- Filesystem setup ----------
     const char* dirs[] = {"/sys", "/notes", "/journal", "/dict", "/apps",
@@ -317,7 +335,6 @@ void setupSD() {
           }
       }
       OLED().oledWord("SD Started In Compatibility Mode", false, false);
-      delay(2000);
 
       // ---------- Filesystem setup ----------
       const char* dirs[] = {"/sys", "/notes", "/journal", "/dict", "/apps",

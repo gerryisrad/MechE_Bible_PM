@@ -100,6 +100,13 @@ void commandSelect(String command) {
   else if (command == "reset") {
     esp_restart();
   } 
+  else if (command == "sdreset") {
+    prefs.begin("PocketMage", false);
+    prefs.putBool("SD_SPI_CMPT", false);
+    prefs.end();
+    OLED().oledWord("SD compatibility mode disabled");
+    delay(2000);
+  }
   /////////////////////////////
   else if (command == "sleep") {
     PWR_BTN_event = true;
