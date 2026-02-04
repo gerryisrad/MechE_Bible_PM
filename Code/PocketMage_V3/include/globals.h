@@ -4,12 +4,18 @@
 // LIBRARIES
 #include <USBMSC.h>
 #include <SD_MMC.h>
+#include <SD.h>
+#include <SPI.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <pocketmage.h>
 // OTA_APP: remove assets.h + assets.cpp, and OS_APPS/, follow OTA_APP: tag instructions in codebase
 #include <assets.h> // OTA_APP: remove
 
+// ===================== SPI BUSSES =====================
+extern SPIClass *vspi;
+extern SPIClass *hspi;
+extern fs::FS* global_fs;
 
 // ===================== SYSTEM STATE =====================
 extern Preferences prefs;                       // NVS preferencesv

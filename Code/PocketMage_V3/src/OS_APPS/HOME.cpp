@@ -35,14 +35,14 @@ void commandSelect(String command) {
     command = removeChar(command, ' ');
     command = removeChar(command, '-');
     keypad.disableInterrupts();
-    SD().listDir(SD_MMC, "/");
+    PM_SDAUTO().listDir(*global_fs, "/");
     keypad.enableInterrupts();
 
     for (uint8_t i = 0; i < MAX_FILES; i++) {
-      String lowerFileName = SD().getFilesListIndex(i);
+      String lowerFileName = PM_SDAUTO().getFilesListIndex(i);
       lowerFileName.toLowerCase();
       if (command == lowerFileName || (command+".txt") == lowerFileName || ("/"+command+".txt") == lowerFileName) {
-        SD().setWorkingFile(SD().getFilesListIndex(i));
+        PM_SDAUTO().setWorkingFile(PM_SDAUTO().getFilesListIndex(i));
         FILEWIZ_INIT();
         return;
       }
@@ -54,14 +54,14 @@ void commandSelect(String command) {
     command = removeChar(command, ' ');
     command = removeChar(command, '/');
     keypad.disableInterrupts();
-    SD().listDir(SD_MMC, "/");
+    PM_SDAUTO().listDir(*global_fs, "/");
     keypad.enableInterrupts();
 
     for (uint8_t i = 0; i < MAX_FILES; i++) {
-      String lowerFileName = SD().getFilesListIndex(i);
+      String lowerFileName = PM_SDAUTO().getFilesListIndex(i);
       lowerFileName.toLowerCase();
       if (command == lowerFileName || (command+".txt") == lowerFileName || ("/"+command+".txt") == lowerFileName) {
-        SD().setEditingFile(SD().getFilesListIndex(i));
+        PM_SDAUTO().setEditingFile(PM_SDAUTO().getFilesListIndex(i));
         TXT_INIT();
         return;
       }
@@ -100,6 +100,13 @@ void commandSelect(String command) {
   else if (command == "reset") {
     esp_restart();
   } 
+  else if (command == "sdreset") {
+    prefs.begin("PocketMage", false);
+    prefs.putBool("SD_SPI_CMPT", false);
+    prefs.end();
+    OLED().oledWord("SD compatibility mode disabled");
+    delay(2000);
+  }
   /////////////////////////////
   else if (command == "sleep") {
     PWR_BTN_event = true;

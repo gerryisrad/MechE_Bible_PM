@@ -46,7 +46,7 @@ void updateEventArray() {
   pocketmage::setCpuSpeed(240);
   delay(50);
 
-  File file = SD_MMC.open("/sys/events.txt", "r"); // Open the text file in read mode
+  File file = global_fs->open("/sys/events.txt", "r"); // Open the text file in read mode
   if (!file) {
     ESP_LOGE(TAG, "Failed to open file for reading: %s", file.path());
     return;
@@ -99,7 +99,7 @@ void updateEventsFile() {
   pocketmage::setCpuSpeed(240);
   delay(50);
   // Clear the existing calendarEvents file first
-  SD().delFile("/sys/events.txt");
+  PM_SDAUTO().delFile("/sys/events.txt");
 
   // Iterate through the calendarEvents vector and append each task to the file
   for (size_t i = 0; i < calendarEvents.size(); i++) {
@@ -107,7 +107,7 @@ void updateEventsFile() {
     String eventInfo = calendarEvents[i][0] + "|" + calendarEvents[i][1] + "|" + calendarEvents[i][2] + "|" + calendarEvents[i][3]+ "|" + calendarEvents[i][4]+ "|" + calendarEvents[i][5];
     
     // Append the task info to the file
-    SD().appendToFile("/sys/events.txt", eventInfo);
+    PM_SDAUTO().appendToFile("/sys/events.txt", eventInfo);
   }
 
   if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);

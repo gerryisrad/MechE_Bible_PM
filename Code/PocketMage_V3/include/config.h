@@ -38,21 +38,31 @@
 #define CHRG_SENS     39
 #define RTC_INT       1 
 
+// SPI
 #define SPI_MOSI      14
 #define SPI_SCK       15
 
+// OLED
 #define OLED_CS       47
 #define OLED_DC       46
 #define OLED_RST      45
 
+// E Ink
 #define EPD_CS        2
 #define EPD_DC        21
 #define EPD_RST       9
 #define EPD_BUSY      37
 
+// SDMMC mode
 #define SD_CLK        12
 #define SD_CMD        11
 #define SD_D0         13
+
+// SDSPI mode
+#define SD_CS         10
+#define SD_MOSI       11
+#define SD_SCK        12
+#define SD_MISO       13
 
 #define BZ_PIN        17
 
@@ -67,5 +77,6 @@ extern bool ALLOW_NO_MICROSD;    // Allow running without SD card
 extern bool HOME_ON_BOOT;        // Start home app on boot
 extern int OLED_BRIGHTNESS;      // OLED brightness (0-255)
 extern int OLED_MAX_FPS;         // OLED max FPS
+extern bool SD_SPI_COMPATIBILITY;
 
 #endif
