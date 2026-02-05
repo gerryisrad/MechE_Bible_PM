@@ -58,14 +58,29 @@ void einkHandler_TERMINAL() {
     newState = false;
     display.fillRect(0, 0, display.width(), display.height(), GxEPD_BLACK);
     
-    int y = 14;
-    for (const String& s : terminalOutputs) {
-      display.setTextColor(GxEPD_WHITE);
-      display.setFont(&FreeMonoBold9pt7b);
-      display.setCursor(5, y);
-      display.print(s);
-      y+=16;
+    if (terminalOutputs.size() < 14) {
+      int y = 14;
+      for (const String& s : terminalOutputs) {
+        display.setTextColor(GxEPD_WHITE);
+        display.setFont(&FreeMonoBold9pt7b);
+        display.setCursor(5, y);
+        display.print(s);
+        y+=16;
+      }
     }
+    else {
+      int y = display.height() - 5;
+      for (int i = terminalOutputs.size() - 1; i >= 0; i--) {
+        if (y < 0) break;
+        const String& s = terminalOutputs[i];
+        display.setTextColor(GxEPD_WHITE);
+        display.setFont(&FreeMonoBold9pt7b);
+        display.setCursor(5, y);
+        display.print(s);
+        y-=16;
+      }
+    }
+    
 
     EINK().refresh();
   }
