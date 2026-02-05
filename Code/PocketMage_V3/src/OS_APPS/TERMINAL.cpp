@@ -18,8 +18,16 @@ void funcSelect(String command) {
 
   command.toLowerCase();
   
-  // enter directory
-  if (command.startsWith("cd")) {
+  #pragma region Basic Commands
+  
+  if (command.startsWith("clear")) {
+    terminalOutputs.clear();
+    newState = true;
+  }
+
+  #pragma region File Operations
+  // Enter directory
+  else if (command.startsWith("cd")) {
     pocketmage::setCpuSpeed(240);
     // Remove "cd " prefix and trim whitespace
     String arg = command.substring(2);
@@ -63,7 +71,7 @@ void funcSelect(String command) {
     return;
   }
 
-  // list directory
+  // List directory
   else if (command.startsWith("ls")) {
     pocketmage::setCpuSpeed(240);
     String arg = command.substring(2);
@@ -85,11 +93,11 @@ void funcSelect(String command) {
         File file = dir.openNextFile();
         while (file) {
           String lineOutput = "";
-          if (file.isDirectory()) lineOutput += "[DIR] ";
-          else lineOutput += "      ";
+          if (file.isDirectory()) lineOutput += "[DIR]";
+          else lineOutput += "     ";
           lineOutput += file.name();
           if (!file.isDirectory()) {
-            lineOutput += " | ";
+            lineOutput += " * ";
             lineOutput += String(file.size()) + "b";
           }
           if (lineOutput.length() > 28) lineOutput = lineOutput.substring(0,28);
@@ -105,6 +113,169 @@ void funcSelect(String command) {
     } else {
       returnText = "ls: No such directory";
     }
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+    newState = true;
+    return;
+  }
+
+  // Make directory
+  else if (command.startsWith("mkdir")) {
+    pocketmage::setCpuSpeed(240);
+
+    // Format the path
+    String arg = command.substring(5);
+    arg.trim();
+    String newDirPath = currentDir;
+    if (arg.length() > 0) {
+      if (arg.startsWith("/"))
+        newDirPath = arg;
+      else {
+        if (!currentDir.endsWith("/"))
+          newDirPath = currentDir + "/";
+        newDirPath += arg;
+      }
+    }
+    else {
+      returnText = "Path not defined";
+    }
+
+    // Create the directory
+    if (!global_fs->exists(newDirPath)) global_fs->mkdir(newDirPath);
+    currentDir = newDirPath;
+
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+    newState = true;
+    return;
+  }
+
+  // Remove directory
+  else if (command.startsWith("rm -r")) {
+    pocketmage::setCpuSpeed(240);
+    String arg = command.substring(5);
+    arg.trim();
+
+    String dirPath = currentDir;
+    if (arg.length() > 0) {
+      if (arg.startsWith("/"))
+        dirPath = arg;
+      else {
+        if (!currentDir.endsWith("/"))
+          dirPath += "/";
+        dirPath += arg;
+      }
+    } else {
+      returnText = "Path not defined";
+    }
+
+    if (returnText == "" && global_fs->exists(dirPath)) {
+      File root = global_fs->open(dirPath);
+      if (!root) {
+        returnText = "Failed to open path";
+      }
+      else {
+        if (!root.isDirectory()) {
+          // Simple file delete
+          if (!global_fs->remove(dirPath))
+            returnText = "Failed to remove file";
+        }
+        else {
+          // Recursive directory delete
+          File entry;
+          while (true) {
+            entry = root.openNextFile();
+            if (!entry)
+              break;
+
+            String entryPath = dirPath;
+            if (!entryPath.endsWith("/"))
+              entryPath += "/";
+            entryPath += entry.name();
+
+            if (entry.isDirectory()) {
+              // recurse inline by reusing rm -r logic
+              String subCmd = "rm -r " + entryPath;
+              command = subCmd;
+              root.close();
+              pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+              newState = true;
+              return;
+            } else {
+              global_fs->remove(entryPath);
+            }
+            entry.close();
+          }
+          root.close();
+
+          // directory now empty
+          if (!global_fs->rmdir(dirPath))
+            returnText = "Failed to remove directory";
+        }
+      }
+    }
+    else if (returnText == "") {
+      returnText = "Path not found";
+    }
+
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+
+    newState = true;
+    return;
+  }
+
+  // Remove file
+  else if (command.startsWith("rm ") && !command.startsWith("rm -r")) {
+    pocketmage::setCpuSpeed(240);
+    String arg = command.substring(2);
+    arg.trim();
+
+    String dirPath = currentDir;
+    if (arg.length() > 0) {
+      if (arg.startsWith("/"))
+        dirPath = arg;
+      else {
+        if (!currentDir.endsWith("/"))
+          dirPath += "/";
+        dirPath += arg;
+      }
+    } else {
+      returnText = "Path not defined";
+    }
+
+    if (returnText == "" && global_fs->exists(dirPath)) {
+      File f = global_fs->open(dirPath);
+      if (!f) {
+        returnText = "Failed to open file";
+      }
+      else if (f.isDirectory()) {
+        returnText = "Not a file - use <rm -r>";
+      }
+      else {
+        f.close();  // REQUIRED
+        if (!global_fs->remove(dirPath))
+          returnText = "Delete failed";
+      }
+      if (f) f.close();
+    }
+    else if (returnText == "") {
+      returnText = "Path not found";
+    }
+
     pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
     if (returnText != "") {
       terminalOutputs.push_back(returnText);
