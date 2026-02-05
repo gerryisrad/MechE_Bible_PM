@@ -23,6 +23,7 @@ void funcSelect(String command) {
   if (command.startsWith("clear")) {
     terminalOutputs.clear();
     newState = true;
+    return;
   }
 
   #pragma region File Operations
