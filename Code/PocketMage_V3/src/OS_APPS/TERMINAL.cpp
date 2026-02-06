@@ -13,13 +13,14 @@ void funcSelect(String command) {
 
   // Add inputted command to terminal outputs
   String totalMsg = currentDir + ">" + command;
-  if (totalMsg.length() > 28) totalMsg = totalMsg.substring(0,28);
+  if (totalMsg.length() > 28)
+    totalMsg = totalMsg.substring(0, 28);
   terminalOutputs.push_back(totalMsg);
 
   command.toLowerCase();
-  
-  #pragma region Basic Commands
-  
+
+#pragma region Basic Commands
+
   // Clear command window
   if (command == "clear") {
     terminalOutputs.clear();
@@ -39,12 +40,12 @@ void funcSelect(String command) {
     terminalOutputs.push_back("touch <file>     Create file");
     terminalOutputs.push_back("clear         Clear terminal");
     terminalOutputs.push_back("help          Show this help");
+    terminalOutputs.push_back("txt <file>       Open in TXT");
 
     newState = true;
     return;
   }
-
-  #pragma region File Operations
+#pragma region File Operations
   // Enter directory
   else if (command.startsWith("cd")) {
     pocketmage::setCpuSpeed(240);
@@ -112,14 +113,17 @@ void funcSelect(String command) {
         File file = dir.openNextFile();
         while (file) {
           String lineOutput = "";
-          if (file.isDirectory()) lineOutput += "[DIR]";
-          else lineOutput += "     ";
+          if (file.isDirectory())
+            lineOutput += "[DIR]";
+          else
+            lineOutput += "     ";
           lineOutput += file.name();
           if (!file.isDirectory()) {
             lineOutput += " * ";
             lineOutput += String(file.size()) + "b";
           }
-          if (lineOutput.length() > 28) lineOutput = lineOutput.substring(0,28);
+          if (lineOutput.length() > 28)
+            lineOutput = lineOutput.substring(0, 28);
           terminalOutputs.push_back(lineOutput);
 
           lineOutput = "";
@@ -158,13 +162,13 @@ void funcSelect(String command) {
           newDirPath = currentDir + "/";
         newDirPath += arg;
       }
-    }
-    else {
+    } else {
       returnText = "Path not defined";
     }
 
     // Create the directory
-    if (!global_fs->exists(newDirPath)) global_fs->mkdir(newDirPath);
+    if (!global_fs->exists(newDirPath))
+      global_fs->mkdir(newDirPath);
     currentDir = newDirPath;
 
     pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
@@ -200,14 +204,12 @@ void funcSelect(String command) {
       File root = global_fs->open(dirPath);
       if (!root) {
         returnText = "Failed to open path";
-      }
-      else {
+      } else {
         if (!root.isDirectory()) {
           // Simple file delete
           if (!global_fs->remove(dirPath))
             returnText = "Failed to remove file";
-        }
-        else {
+        } else {
           // Recursive directory delete
           File entry;
           while (true) {
@@ -240,8 +242,7 @@ void funcSelect(String command) {
             returnText = "Failed to remove directory";
         }
       }
-    }
-    else if (returnText == "") {
+    } else if (returnText == "") {
       returnText = "Path not found";
     }
 
@@ -280,18 +281,16 @@ void funcSelect(String command) {
       File f = global_fs->open(dirPath);
       if (!f) {
         returnText = "Failed to open file";
-      }
-      else if (f.isDirectory()) {
+      } else if (f.isDirectory()) {
         returnText = "Not a file - use <rm -r>";
-      }
-      else {
+      } else {
         f.close();  // REQUIRED
         if (!global_fs->remove(dirPath))
           returnText = "Delete failed";
       }
-      if (f) f.close();
-    }
-    else if (returnText == "") {
+      if (f)
+        f.close();
+    } else if (returnText == "") {
       returnText = "Path not found";
     }
 
@@ -321,8 +320,10 @@ void funcSelect(String command) {
       src.trim();
       dest.trim();
 
-      String srcPath = src.startsWith("/") ? src : (currentDir + (currentDir.endsWith("/") ? "" : "/") + src);
-      String destPath = dest.startsWith("/") ? dest : (currentDir + (currentDir.endsWith("/") ? "" : "/") + dest);
+      String srcPath =
+          src.startsWith("/") ? src : (currentDir + (currentDir.endsWith("/") ? "" : "/") + src);
+      String destPath =
+          dest.startsWith("/") ? dest : (currentDir + (currentDir.endsWith("/") ? "" : "/") + dest);
 
       if (!global_fs->exists(srcPath)) {
         returnText = "Source not found";
@@ -373,8 +374,10 @@ void funcSelect(String command) {
       src.trim();
       dest.trim();
 
-      String srcPath = src.startsWith("/") ? src : (currentDir + (currentDir.endsWith("/") ? "" : "/") + src);
-      String destPath = dest.startsWith("/") ? dest : (currentDir + (currentDir.endsWith("/") ? "" : "/") + dest);
+      String srcPath =
+          src.startsWith("/") ? src : (currentDir + (currentDir.endsWith("/") ? "" : "/") + src);
+      String destPath =
+          dest.startsWith("/") ? dest : (currentDir + (currentDir.endsWith("/") ? "" : "/") + dest);
 
       if (!global_fs->exists(srcPath)) {
         returnText = "Source not found";
@@ -424,16 +427,16 @@ void funcSelect(String command) {
     if (arg.length() == 0) {
       returnText = "Usage: touch <file>";
     } else {
-      String filePath = arg.startsWith("/")
-        ? arg
-        : (currentDir + (currentDir.endsWith("/") ? "" : "/") + arg);
+      String filePath =
+          arg.startsWith("/") ? arg : (currentDir + (currentDir.endsWith("/") ? "" : "/") + arg);
 
       if (global_fs->exists(filePath)) {
         File f = global_fs->open(filePath);
         if (f && f.isDirectory()) {
           returnText = "Is a directory";
         }
-        if (f) f.close();
+        if (f)
+          f.close();
       } else {
         File f = global_fs->open(filePath, FILE_WRITE);
         if (!f) {
@@ -454,7 +457,54 @@ void funcSelect(String command) {
     return;
   }
 
-  #pragma region Fallback
+  // Open in text editor
+  else if (command.startsWith("txt ")) {
+    pocketmage::setCpuSpeed(240);
+
+    String arg = command.substring(4);  // everything after "txt "
+    arg.trim();
+
+    if (arg.length() == 0) {
+      returnText = "Usage: txt <filename>";
+    } else {
+      // Ensure .txt extension or add it
+      if (!arg.endsWith(".txt")) {
+        // Check if there's an extension at all
+        int dotIdx = arg.lastIndexOf('.');
+        if (dotIdx != -1) {
+          returnText = "Only .txt files supported";
+        } else {
+          // Append .txt automatically
+          arg += ".txt";
+        }
+      }
+
+      if (returnText == "") {
+        // Compute full path
+        String filePath = arg.startsWith("/") ? arg : (currentDir + (currentDir.endsWith("/") ? "" : "/") + arg);
+
+        // Open in TXT
+        PM_SDAUTO().setEditingFile(filePath);
+        OLED().oledWord("Opening: "+ PM_SDAUTO().getEditingFile());
+        pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+        delay(1000);
+        TXT_INIT(filePath);
+        return;
+      }
+    }
+
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+    newState = true;
+    return;
+  }
+
+#pragma region Fallback
   // Check whether command is a home/settings command
   returnText = commandSelect(command);
   if (returnText != "") {
