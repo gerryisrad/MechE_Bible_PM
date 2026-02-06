@@ -20,8 +20,26 @@ void funcSelect(String command) {
   
   #pragma region Basic Commands
   
-  if (command.startsWith("clear")) {
+  // Clear command window
+  if (command == "clear") {
     terminalOutputs.clear();
+    newState = true;
+    return;
+  }
+
+  // Help
+  else if (command == "help") {
+    terminalOutputs.push_back("Available commands:");
+    terminalOutputs.push_back("ls                  List dir");
+    terminalOutputs.push_back("cd <dir>          Change dir");
+    terminalOutputs.push_back("rm <file>        Remove file");
+    terminalOutputs.push_back("rm -r <dir>       Remove dir");
+    terminalOutputs.push_back("cp <src> <dest>    Copy file");
+    terminalOutputs.push_back("mv <src> <dest>  Move/rename");
+    terminalOutputs.push_back("touch <file>     Create file");
+    terminalOutputs.push_back("clear         Clear terminal");
+    terminalOutputs.push_back("help          Show this help");
+
     newState = true;
     return;
   }
@@ -287,6 +305,156 @@ void funcSelect(String command) {
     return;
   }
 
+  // Copy file
+  else if (command.startsWith("cp ")) {
+    pocketmage::setCpuSpeed(240);
+
+    String args = command.substring(3);
+    args.trim();
+
+    int spaceIdx = args.indexOf(' ');
+    if (spaceIdx == -1) {
+      returnText = "Usage: cp <src> <dest>";
+    } else {
+      String src = args.substring(0, spaceIdx);
+      String dest = args.substring(spaceIdx + 1);
+      src.trim();
+      dest.trim();
+
+      String srcPath = src.startsWith("/") ? src : (currentDir + (currentDir.endsWith("/") ? "" : "/") + src);
+      String destPath = dest.startsWith("/") ? dest : (currentDir + (currentDir.endsWith("/") ? "" : "/") + dest);
+
+      if (!global_fs->exists(srcPath)) {
+        returnText = "Source not found";
+      } else {
+        File srcFile = global_fs->open(srcPath, FILE_READ);
+        if (!srcFile || srcFile.isDirectory()) {
+          returnText = "Source is not a file";
+        } else {
+          File destFile = global_fs->open(destPath, FILE_WRITE);
+          if (!destFile) {
+            returnText = "Failed to create destination";
+          } else {
+            uint8_t buf[512];
+            size_t n;
+            while ((n = srcFile.read(buf, sizeof(buf))) > 0) {
+              destFile.write(buf, n);
+            }
+            destFile.close();
+          }
+          srcFile.close();
+        }
+      }
+    }
+
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+    newState = true;
+    return;
+  }
+
+  // Move file
+  else if (command.startsWith("mv ")) {
+    pocketmage::setCpuSpeed(240);
+
+    String args = command.substring(3);
+    args.trim();
+
+    int spaceIdx = args.indexOf(' ');
+    if (spaceIdx == -1) {
+      returnText = "Usage: mv <src> <dest>";
+    } else {
+      String src = args.substring(0, spaceIdx);
+      String dest = args.substring(spaceIdx + 1);
+      src.trim();
+      dest.trim();
+
+      String srcPath = src.startsWith("/") ? src : (currentDir + (currentDir.endsWith("/") ? "" : "/") + src);
+      String destPath = dest.startsWith("/") ? dest : (currentDir + (currentDir.endsWith("/") ? "" : "/") + dest);
+
+      if (!global_fs->exists(srcPath)) {
+        returnText = "Source not found";
+      } else {
+        // Try fast rename first
+        if (!global_fs->rename(srcPath, destPath)) {
+          // Fallback: copy + delete
+          File srcFile = global_fs->open(srcPath, FILE_READ);
+          if (!srcFile || srcFile.isDirectory()) {
+            returnText = "Source is not a file";
+          } else {
+            File destFile = global_fs->open(destPath, FILE_WRITE);
+            if (!destFile) {
+              returnText = "Failed to create destination";
+            } else {
+              uint8_t buf[512];
+              size_t n;
+              while ((n = srcFile.read(buf, sizeof(buf))) > 0) {
+                destFile.write(buf, n);
+              }
+              destFile.close();
+              global_fs->remove(srcPath);
+            }
+            srcFile.close();
+          }
+        }
+      }
+    }
+
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+    newState = true;
+    return;
+  }
+
+  // Create empty file (touch)
+  else if (command.startsWith("touch ")) {
+    pocketmage::setCpuSpeed(240);
+
+    String arg = command.substring(6);
+    arg.trim();
+
+    if (arg.length() == 0) {
+      returnText = "Usage: touch <file>";
+    } else {
+      String filePath = arg.startsWith("/")
+        ? arg
+        : (currentDir + (currentDir.endsWith("/") ? "" : "/") + arg);
+
+      if (global_fs->exists(filePath)) {
+        File f = global_fs->open(filePath);
+        if (f && f.isDirectory()) {
+          returnText = "Is a directory";
+        }
+        if (f) f.close();
+      } else {
+        File f = global_fs->open(filePath, FILE_WRITE);
+        if (!f) {
+          returnText = "Failed to create file";
+        } else {
+          f.close();
+        }
+      }
+    }
+
+    pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    if (returnText != "") {
+      terminalOutputs.push_back(returnText);
+      OLED().oledWord(returnText);
+      delay(1000);
+    }
+    newState = true;
+    return;
+  }
+
+  #pragma region Fallback
   // Check whether command is a home/settings command
   returnText = commandSelect(command);
   if (returnText != "") {

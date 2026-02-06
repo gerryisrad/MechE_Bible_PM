@@ -258,6 +258,9 @@ void loadState(bool changeState) {
       case 'd':
         CurrentAppState = LEXICON;
         break;
+      case 'x':
+        CurrentAppState = TERMINAL;
+        break;
       case 'l':
         CurrentAppState = APPLOADER;
         break;
@@ -293,6 +296,9 @@ void loadState(bool changeState) {
         break;
       case JOURNAL:
         JOURNAL_INIT();
+        break;
+      case TERMINAL:
+        TERMINAL_INIT();
         break;
       default:
         HOME_INIT();
