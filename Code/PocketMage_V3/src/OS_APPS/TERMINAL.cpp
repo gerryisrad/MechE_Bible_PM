@@ -1188,29 +1188,57 @@ void einkHandler_TERMINAL() {
             display.print(s);
             y += 10;
           }
-        } else {
-          int y = display.height() - 2;
-          for (int i = potionLines.size() - 1; i >= 0; i--) {
-            if (y < 0)
-              break;
-            const String& s = potionLines[i];
+        } 
+        else {
+          if (currentPotionLine <= 20) {
+            int y = 10;
+            for (size_t i = 0; i < potionLines.size(); i++) {
+              if (i < 0 || i > potionLines.size() || y < 0 || y > (display.height()+10)) continue;
 
-            String lineNum = String(i);
-            while (lineNum.length() < 3) {
-              lineNum = "0" + lineNum;
+              const String& s = potionLines[i];
+
+              String lineNum = String(i);
+              while (lineNum.length() < 3) {
+                lineNum = "0" + lineNum;
+              }
+
+              if (i == currentPotionLine) {
+                display.fillRect(0, y - 9, display.width(), 11, GxEPD_WHITE);
+                display.setTextColor(GxEPD_BLACK);
+              } else
+                display.setTextColor(GxEPD_WHITE);
+              display.setFont(&Font5x7Fixed);
+              display.setCursor(5, y);
+              display.print("[" + lineNum + "]");
+              display.setCursor(35, y);
+              display.print(s);
+              y += 10;
             }
+          }
+          else {
+            int y = 10;
+            for (size_t i = currentPotionLine - 20; i < currentPotionLine + 3; i++) {
+              if (i < 0 || i > potionLines.size() || y < 0 || y > (display.height()+10)) continue;
 
-            if (i == currentPotionLine) {
-              display.fillRect(0, y - 9, display.width(), 11, GxEPD_WHITE);
-              display.setTextColor(GxEPD_BLACK);
-            } else
-              display.setTextColor(GxEPD_WHITE);
-            display.setFont(&Font5x7Fixed);
-            display.setCursor(5, y);
-            display.print("[" + lineNum + "]");
-            display.setCursor(35, y);
-            display.print(s);
-            y += 10;
+              const String& s = potionLines[i];
+
+              String lineNum = String(i);
+              while (lineNum.length() < 3) {
+                lineNum = "0" + lineNum;
+              }
+
+              if (i == currentPotionLine) {
+                display.fillRect(0, y - 9, display.width(), 11, GxEPD_WHITE);
+                display.setTextColor(GxEPD_BLACK);
+              } else
+                display.setTextColor(GxEPD_WHITE);
+              display.setFont(&Font5x7Fixed);
+              display.setCursor(5, y);
+              display.print("[" + lineNum + "]");
+              display.setCursor(35, y);
+              display.print(s);
+              y += 10;
+            }
           }
         }
 
