@@ -78,7 +78,7 @@ void einkHandler_FILEWIZ();
 String fileWizardMini(bool allowRecentSelect = false, String rootDir = "/");
 
 // <TXT.cpp>
-void TXT_INIT();
+void TXT_INIT(String inPath = "");
 void TXT_INIT_JournalMode();
 void processKB_TXT_NEW();
 void einkHandler_TXT_NEW();
@@ -139,3 +139,6 @@ void loadAndDrawAppIcon(int x, int y, int otaIndex, bool showName = true, int ma
 void TERMINAL_INIT();
 void processKB_TERMINAL();
 void einkHandler_TERMINAL();
+// Wrench
+const char* readCFile(const String& path);
+void compileWrench(const char* wrenchCode);

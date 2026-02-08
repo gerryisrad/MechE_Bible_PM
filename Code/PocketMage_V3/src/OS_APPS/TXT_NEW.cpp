@@ -1783,10 +1783,14 @@ void initFonts() {
   fonts[sans].list_BI = &FreeSansBoldOblique9pt8b;
 }
 
-void TXT_INIT() {
+void TXT_INIT(String inPath) {
   initFonts();
 
-  loadMarkdownFile(PM_SDAUTO().getEditingFile());
+  if (inPath == "") loadMarkdownFile(PM_SDAUTO().getEditingFile());
+  else {
+    PM_SDAUTO().setEditingFile(inPath);
+    loadMarkdownFile(inPath);
+  }
 
   setFontStyle(serif);
 
@@ -1815,6 +1819,7 @@ void einkHandler_TXT_NEW() {
   if (updateScreen) {
     updateScreen = false;
     display.setFullWindow();
+    display.setTextColor(GxEPD_BLACK);
     display.fillScreen(GxEPD_WHITE);
     displayDocument();
     EINK().refresh();
