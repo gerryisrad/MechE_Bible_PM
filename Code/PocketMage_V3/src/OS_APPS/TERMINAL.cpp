@@ -847,6 +847,9 @@ void wr_updateTerm(WRContext* c, const WRValue* argv, int argn, WRValue& ret, vo
   updateTerminalDisp();
 }
 
+// ----- Eink Drawing ----- //
+
+
 // ----- Helpers ----- //
 // Delay
 void wr_delay(WRContext* c, const WRValue* argv, int argn, WRValue& ret, void* usr) {
