@@ -79,25 +79,8 @@
 - Bluetooth keyboard support
 
 # License
-All files are distributed under CC BY-NC-SA 4.0 license:
+All files are distributed under Apache-2.0 license:
 
 PocketMage PDA - A clamshell note-taking and productivity device using E-Ink and OLED.
 
-Copyright (C) 2025 Ashtf
-
-[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC--BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)  
-
-This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.  
-
-You are free to:  
-- **Share** — copy and redistribute the material in any medium or format  
-- **Adapt** — remix, transform, and build upon the material  
-
-Under the following terms:  
-- **Attribution** — You must give appropriate credit.  
-- **NonCommercial** — You may not use this material for commercial purposes.  
-- **ShareAlike** — If you remix, transform, or build upon it, you must distribute your contributions under the same license.  
-
-The original author retains the right to use this work commercially.  
-
-Full license details: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)  
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 
