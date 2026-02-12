@@ -43,6 +43,11 @@ void updateTasksFile() {
   // Clear the existing tasks file first
   PM_SDAUTO().delFile("/sys/tasks.txt");
 
+  pocketmage::setCpuSpeed(240);
+  if (!global_fs->exists("/sys/tasks.txt")) {
+    File f = global_fs->open("/sys/tasks.txt", FILE_WRITE);
+    if (f) f.close();
+  }
   // Iterate through the tasks vector and append each task to the file
   for (size_t i = 0; i < tasks.size(); i++) {
     // Create a string from the task's attributes with "|" delimiter
