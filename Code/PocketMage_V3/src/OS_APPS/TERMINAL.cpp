@@ -1158,6 +1158,7 @@ void processKB_TERMINAL() {
 
   switch (CurrentTERMfunc) {
     case PROMPT:
+      KB().setKeyboardState(NORMAL);
       command = textPrompt("", currentDir + ">");
       if (command != "_EXIT_") {
         funcSelect(command);
@@ -1250,6 +1251,18 @@ void processKB_TERMINAL() {
         }
         // CENTER
         else if (inchar == 20) {
+          KB().setKeyboardState(FUNC);
+          command = textPrompt("GOTO LINE:");
+          if (command != "_EXIT_") {
+            int line = atoi(command.c_str());
+            // Line is in bounds
+            if (line >= 0 && line < potionLines.size()) {
+              currentPotionLine = line;
+            }
+            else if (line < 0) currentPotionLine = 0;
+            else if (line >= potionLines.size()) currentPotionLine = potionLines.size() - 1;
+            newState = true;
+          }
         }
         // SHIFT+LEFT
         else if (inchar == 28) {
