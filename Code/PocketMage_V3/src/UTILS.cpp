@@ -373,7 +373,6 @@ void updateBattState() {
 
 // Prompt the user for text input, return the text
 String textPrompt(String promptText, String prefix) {
-  KB().setKeyboardState(NORMAL);
   String currentLine = "";
   int cursor_pos = 0;
   long lastInput = millis();

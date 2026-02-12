@@ -369,6 +369,7 @@ void processKB_HOME() {
 
   switch (CurrentHOMEState) {
     case HOME_HOME:
+      KB().setKeyboardState(NORMAL);
       command = textPrompt();
       if (command != "_EXIT_") commandSelect(command);
       else newState = true;

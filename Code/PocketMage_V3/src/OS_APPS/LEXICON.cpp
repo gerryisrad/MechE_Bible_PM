@@ -186,6 +186,7 @@ void processKB_LEXICON() {
 
   switch (CurrentLexState) {
     case MENU:
+      KB().setKeyboardState(NORMAL);
       command = textPrompt();
       if (command != "_EXIT_") loadDefinitions(command);
       else HOME_INIT();
