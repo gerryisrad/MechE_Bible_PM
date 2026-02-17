@@ -130,7 +130,7 @@ The English dictionary isn't installed on the PocketMage out of the box and need
 
 ###### **I can't flash the firmware!**
 
-Ensure that: Your battery is unplugged and the programming mode DIP switch is set to ON.
+Ensure that: Your battery is unplugged and the programming mode DIP switch is set to ON. Refer to above guide for detailed instructions on flashing.
 
 
 
