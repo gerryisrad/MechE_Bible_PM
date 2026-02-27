@@ -7,18 +7,18 @@
 #include <globals.h>
 #if OTA_APP
 
-#include <vector>
+// No STL containers — all static to avoid heap fragmentation on OTA
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-#define MAX_ENTRIES        256
-#define MAX_NAME_LEN        64
-#define DISPLAY_LINE_CAP   600
+#define MAX_ENTRIES         64
+#define MAX_NAME_LEN        48
+#define DISPLAY_LINE_CAP   256
 #define LINES_PER_PAGE      12
-#define LINES_PER_CHUNK    200
-#define MAX_CHUNKS          64
-#define TEXT_POOL_CAP    16384
-#define WORD_REF_CAP      2048
-#define MAX_WORD_LEN        80
+#define LINES_PER_CHUNK    100
+#define MAX_CHUNKS          32
+#define TEXT_POOL_CAP     8192
+#define WORD_REF_CAP       512
+#define MAX_WORD_LEN        64
 #define DISPLAY_WIDTH_BUFFER  8
 #define SPECIAL_PADDING      20
 #define WORDWIDTH_BUFFER      2
@@ -26,9 +26,9 @@
 #define NORMAL_LINE_PADDING   3
 #define CONTENT_START_Y      18
 #define PICKER_VISIBLE       10
-#define FILTER_MAX           20
-#define EDITOR_MAX_LINES    512
-#define EDITOR_LINE_LEN     128
+#define FILTER_MAX           16
+#define EDITOR_MAX_LINES     64
+#define EDITOR_LINE_LEN      80
 #define SPACEWIDTH_SYMBOL   "M"
 
 // ── App modes ─────────────────────────────────────────────────────────────────
@@ -136,10 +136,11 @@ static ulong       s_pageStartLine    = 0;
 // ── Chunk index ───────────────────────────────────────────────────────────────
 struct ChunkInfo {
   size_t offset;
-  String heading;
+  char   heading[48];
 };
 
-static std::vector<ChunkInfo> chunks;
+static ChunkInfo chunks[MAX_CHUNKS];
+static int   chunkCount   = 0;
 static int   currentChunk = 0;
 static ulong pageIndex    = 0;
 static bool  needsRedraw  = false;
@@ -294,15 +295,14 @@ static void layoutSourceLine(const String& text, char style, ulong orderedListNu
 
 // ── Chunk loading ─────────────────────────────────────────────────────────────
 static void buildIndex() {
-  chunks.clear();
+  chunkCount = 0;
   File f = SD_MMC.open(s_entryPath, FILE_READ);
   if (!f) { fileError = true; return; }
 
   int lineCount = 0;
-  ChunkInfo first;
-  first.offset  = 0;
-  first.heading = "";
-  chunks.push_back(first);
+  chunks[0].offset = 0;
+  chunks[0].heading[0] = '\0';
+  chunkCount = 1;
 
   while (f.available()) {
     char buf[256];
@@ -316,28 +316,29 @@ static void buildIndex() {
     if (len > 0 && buf[len - 1] == '\r') buf[--len] = '\0';
 
     if (buf[0] == '#' && buf[1] == ' ') {
-      if (chunks.back().heading.length() == 0)
-        chunks.back().heading = String(buf + 2);
+      if (chunks[chunkCount - 1].heading[0] == '\0') {
+        strncpy(chunks[chunkCount - 1].heading, buf + 2, 47);
+        chunks[chunkCount - 1].heading[47] = '\0';
+      }
     }
     lineCount++;
-    if (lineCount % LINES_PER_CHUNK == 0) {
-      ChunkInfo ci;
-      ci.offset  = (size_t)f.position();
-      ci.heading = "";
-      chunks.push_back(ci);
+    if (lineCount % LINES_PER_CHUNK == 0 && chunkCount < MAX_CHUNKS) {
+      chunks[chunkCount].offset = (size_t)f.position();
+      chunks[chunkCount].heading[0] = '\0';
+      chunkCount++;
     }
   }
   f.close();
 }
 
 static void loadChunk(int idx) {
-  if (idx < 0 || idx >= (int)chunks.size()) return;
+  if (idx < 0 || idx >= chunkCount) return;
 
   File f = SD_MMC.open(s_entryPath, FILE_READ);
   if (!f) { fileError = true; return; }
 
   f.seek(chunks[idx].offset);
-  size_t endOffset = (idx + 1 < (int)chunks.size()) ? chunks[idx + 1].offset : 0;
+  size_t endOffset = (idx + 1 < chunkCount) ? chunks[idx + 1].offset : 0;
 
   s_textPoolUsed     = 0;
   s_wordRefsUsed     = 0;
@@ -565,7 +566,7 @@ static void updateOLED() {
     char info[32];
     snprintf(info, sizeof(info), "Pg %lu/%d  Ch %d/%d",
              (unsigned long)(pageIndex + 1), getMaxPage() + 1,
-             currentChunk + 1, (int)chunks.size());
+             currentChunk + 1, chunkCount);
     u8g2.drawStr(1, 20, info);
   } else if (appMode == MODE_EDITOR) {
     u8g2.drawStr(1, 9, "Editor");
@@ -825,7 +826,7 @@ void processKB_APP() {
       if ((int)pageIndex < getMaxPage()) {
         pageIndex++;
         needsRedraw = true;
-      } else if (currentChunk + 1 < (int)chunks.size()) {
+      } else if (currentChunk + 1 < chunkCount) {
         currentChunk++;
         pageIndex = 0;
         loadChunk(currentChunk);
@@ -840,7 +841,7 @@ void processKB_APP() {
         loadChunk(currentChunk);
       }
     } else if (ch == 6) {  // FN+RIGHT — next chunk
-      if (currentChunk + 1 < (int)chunks.size()) {
+      if (currentChunk + 1 < chunkCount) {
         currentChunk++;
         pageIndex = 0;
         loadChunk(currentChunk);
@@ -1088,7 +1089,7 @@ void einkHandler_APP() {
 
   // ── Viewer mode ─────────────────────────────────────────────────────────────
   if (appMode == MODE_VIEWER) {
-    if (fileError || chunks.empty()) {
+    if (fileError || chunkCount == 0) {
       display.setFont(&FreeSerif9pt7b);
       display.setCursor(10, 30);
       display.print("Cannot open entry file");
