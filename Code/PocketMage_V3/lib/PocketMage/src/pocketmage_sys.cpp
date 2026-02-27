@@ -231,7 +231,11 @@ void hardReset(void* parameter) {
     if ((millis() - heldSince) > 3000) {
       OLED().oledWord("Process broken");
       delay(1000);
+      #if !OTA_APP
       HOME_INIT();
+      #else
+      rebootToPocketMage();
+      #endif
     }
   }
 }

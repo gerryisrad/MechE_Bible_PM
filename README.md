@@ -1,86 +1,154 @@
-# PocketMage PDA
-[Please note that this project is in Beta]
+# MechE Bible
 
-@Ashtf 2025
+A mechanical engineering dictionary and reference indexer for the [PocketMage PDA](https://github.com/ashtf8/PocketMage_PDA).
 
-<img width="1245" height="882" alt="Screenshot 2025-09-10 203805" src="https://github.com/user-attachments/assets/f021dc66-12d8-489f-9078-9c7eeeb4ad03" />
+Browse, search, read, and create engineering reference entries stored as Markdown files on the SD card.
 
-<img width="1151" height="807" alt="Screenshot 2025-09-10 203851" src="https://github.com/user-attachments/assets/676fe6bb-d124-4707-828f-a3c22c24fd00" />
+## Features
 
-# [Project Summary]
-  This project is a PDA powered by an ESP32-S3 running a custom OS written in C++ using PlatformIO. This project utilizes an E-Ink and OLED screen in tandem to mitigate the refresh rate restrictions of an E-Ink panel while retaining the aesthetics and benefits of using E-Ink. This project is a work in progress and currently amounts to a simple GUI for navigating between apps, a text (.txt) file editor, and a basic file manager. More applications are planned for the future and a list of TO-DOs can be found below.
+- Alphabetical entry browser with search-as-you-type filtering
+- Markdown viewer with headings, bold, lists, code blocks, block quotes, and horizontal rules
+- On-device line editor for creating and editing entries
+- 1-bit BMP image support for diagrams on the e-ink display
+- Content stored as plain `.md` files -- editable on any computer via USB
 
-  At this point, the plan for this project is to get the software and hardware to maturity and once a finished product is achieved, a few things will happen. First, the project files (Code, KiCad schematics, 3D files) will be open-sourced and free for anyone to access. Next, I will likely begin selling kits that allow people to purchase all the parts required to build a device for themselves if they don't want to source the parts themselves. Finally, the community will be encouraged to help develop the software for the device and hopefully push it even further than I could myself.
+## Quick Start
 
-  I will try my best to keep this GitHub up to date with the development of the device.
+1. Copy `MechE_Bible.tar` to `/apps/` on your PocketMage SD card
+2. Create `/meche/entries/` and `/meche/images/` on the SD card
+3. Copy sample entries from `sample_sd_content/meche/entries/` into `/meche/entries/`
+4. Open the PocketMage App Loader, select MechE_Bible, install to an OTA slot
+5. Launch the app
 
-# [Getting Started]
-**Helpful Resources:**
+## SD Card Layout
 
-[FAQ](https://github.com/ashtf8/PocketMage_PDA/tree/main/Docs/FAQ)
+```
+/apps/
+  MechE_Bible.tar          <-- app binary
+/meche/
+  entries/
+    beam_deflection.md     <-- your reference entries
+    bolted_joints.md
+    fatigue_analysis.md
+  images/
+    diagram.bmp            <-- 1-bit BMP, max 320x200
+```
 
-[Tutorials](https://github.com/ashtf8/PocketMage_PDA/tree/main/Docs/Tutorials)
+## Controls
 
-[PocketMage Command & Keystroke Manual](https://github.com/ashtf8/PocketMage_PDA/tree/main/Docs/Getting%20Started/Command%20Manual)
+### Global
 
-[3rd Party App Template](https://github.com/ashtf8/PocketMage_PDA/blob/main/Code/PocketMage_V3/src/APP_TEMPLATE.cpp)
+| Key | Action |
+|---|---|
+| FN + CENTER (d-pad click) | Exit to PocketMage OS (works from any screen) |
+| Hold power button 3 sec | Hard reset to PocketMage OS |
 
-  Check the [APP_TEMPLATE.cpp](./Code/PocketMage_V3/src/APP_TEMPLATE.cpp) and [/Code/PocketMage_V3/src/readme.md](./Code/PocketMage_V3/src/readme.md) file for more information. Check out the following video as a tutorial on how to create and format your app:
-[Developing For the PocketMage](https://www.youtube.com/watch?v=3Ytc-3-BbMM)
+### Browser
 
-# [Hardware]
-- ESP32-S3 WROOM1 with 16mb flash and 8mb RAM. WiFi and Bluetooth supported.
-- 3.1" 320x240px 1-bit SPI Eink panel (GDEQ031T10) with integrated driver
-- 256x32px 1-bit SPI OLED (SSD1326, ER-OLED018-1W) with integrated driver
-- MicroSD card slot with support for up to 2TB
-- TCA8418 I2C Keyboard Matrix IC
-- Piezo Buzzer (Simple Tones)
-- Power Button
-- 1200mAh pouch-style LiPo battery with JST PH (2mm) connector
-- USB Type-C connector
-- PCF8563T I2C RTC (Real Time Clock) module
-- Expansion port with the following breakouts:
-    - +3.3v
-    - GND
-    - I2C SDA
-    - I2C SCL
-    - SPI MOSI
-    - SPI SCK
-    - SPI MISO
-    - GPIO A
-    - GPIO B
-    - GPIO C
-    - GPIO D / UART TX (changeable with solder jumper, default TX)
-    - GPIO E / UART RX (changeable with solder jumper, default RX)
+| Key | Action |
+|---|---|
+| < / > | Navigate entries |
+| FN + < / > | Jump 10 entries |
+| SPACE / ENTER / CENTER | Open selected entry |
+| N | Create new entry |
+| Type any letter | Search/filter |
+| BACKSPACE | Remove filter character |
+| ESC | Exit to PocketMage OS |
 
+### Viewer
 
-# [Software]
-- Text editor app
-- FileWizard file-management app
-- Calendar app
-- USB file transfer app
-- Settings app
-- Tasks app
-- Journal app
-- Dictionary app (Lexicon)
-- Basic commands supported through the home menu:
-    - roll dN (dice roll, N=number of sides)
-    - set time and date
-    - directly open files in Notes or FileWiz by typing the name
-    - etc.
+| Key | Action |
+|---|---|
+| < / > | Previous / next page |
+| SPACE | Next page |
+| FN + < / > | Previous / next chunk |
+| E | Edit current entry |
+| B or ESC | Back to browser |
 
-# [Planned Features]
-- Timers and alarms
-- E-book reader
-- WiFi notes/calendar sync (Google Docs/Calendar)
-- LoRa/Meshtastic add-on module
-- Battery expansion add-on module
-- Custom abbreviations
-- Bluetooth keyboard support
+### Editor
 
-# License
-All files are distributed under Apache-2.0 license:
+| Key | Action |
+|---|---|
+| < / > | Move cursor up / down (lines) |
+| FN + < / > | Move cursor left / right (within line) |
+| FN+SHIFT + < / > | Jump to start / end of line |
+| ENTER | New line |
+| BACKSPACE | Delete character |
+| FN + ENTER | Save and exit |
+| ESC | Discard and exit (confirms if unsaved changes) |
 
-PocketMage PDA - A clamshell note-taking and productivity device using E-Ink and OLED.
+### Confirm Dialog
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 
+| Key | Action |
+|---|---|
+| SPACE / ENTER / CENTER | Yes |
+| ESC | No |
+
+## Entry Format
+
+Each `.md` file is a self-contained reference entry using standard Markdown:
+
+```markdown
+# Entry Title
+
+**Category:** Topic Area
+**Tags:** keyword1, keyword2
+
+---
+
+Content here. Supported syntax:
+
+## Subheadings
+- Bullet lists
+- **Bold text**
+1. Numbered lists
+> Block quotes
+
+Images: ![filename.bmp]
+```
+
+## Adding Content
+
+**On-device:** Press N in the browser to create a new entry. Type using the keyboard, then FN+ENTER to save.
+
+**Via USB:** Connect the PocketMage, open `/meche/entries/`, and create or edit `.md` files with any text editor.
+
+## Image Converter
+
+Convert images to 1-bit BMP for the e-ink display:
+
+```
+pip install Pillow
+python tools/convert_image.py input.png output.bmp
+```
+
+Options: `--width` and `--height` for max dimensions (default 320x200). Uses Floyd-Steinberg dithering.
+
+## Building from Source
+
+Requires [PlatformIO](https://platformio.org/).
+
+```
+cd Code/PocketMage_V3
+pio run -e OTA_APP
+```
+
+Output: `.pio/build/OTA_APP/firmware.bin`
+
+To package as `.tar` for the App Loader:
+
+```
+mkdir staging
+copy .pio\build\OTA_APP\firmware.bin staging\MechE_Bible.bin
+tar -cf MechE_Bible.tar -C staging MechE_Bible.bin
+```
+
+Place the `.tar` in `/apps/` on the SD card and install via the App Loader.
+
+## Based On
+
+Built on the [PocketMage PDA](https://github.com/ashtf8/PocketMage_PDA) platform using the OTA app framework. Markdown rendering approach inspired by [BookReader_PM](https://github.com/sosalover/BookReader_PM).
+
+## License
+
+Apache-2.0

@@ -517,9 +517,13 @@ String textPrompt(String promptText, String prefix) {
         OLEDFPSMillis = currentMillis;
 
         if (millis() - lastInput > IDLE_TIME) {
+#if !OTA_APP
           mageIdle(true);
+#endif
         } else {
+#if !OTA_APP
           resetIdle();
+#endif
           if (prefix != "") OLED().oledLine(prefix + currentLine, cursor_pos+prefix.length(), false, promptText);
           else OLED().oledLine(currentLine, cursor_pos, false, promptText);
         }
