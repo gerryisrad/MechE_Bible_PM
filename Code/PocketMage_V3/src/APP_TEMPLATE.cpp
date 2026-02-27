@@ -1135,7 +1135,6 @@ void einkHandler_APP() {
     display.print("< > nav  SPC open  N new  ESC exit");
 
     EINK().refresh();
-    updateOLED();
     return;
   }
 
@@ -1164,7 +1163,6 @@ void einkHandler_APP() {
     display.print("< > page  E edit  ESC back");
 
     EINK().refresh();
-    updateOLED();
     return;
   }
 
@@ -1213,7 +1211,6 @@ void einkHandler_APP() {
     display.print("FN+Enter save  ESC discard  < > nav");
 
     EINK().refresh();
-    updateOLED();
     return;
   }
 
@@ -1228,7 +1225,6 @@ void einkHandler_APP() {
     display.print("Space = Yes    ESC = No");
 
     EINK().refresh();
-    updateOLED();
     return;
   }
 }
