@@ -348,8 +348,17 @@ static void buildIndex() {
 static void loadChunk(int idx) {
   if (idx < 0 || idx >= chunkCount) return;
 
+  SDActive = true;
+  pocketmage::setCpuSpeed(240);
+  delay(50);
+
   File f = SD_MMC.open(s_entryPath, FILE_READ);
-  if (!f) { fileError = true; return; }
+  if (!f) { 
+    if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    SDActive = false;
+    fileError = true; 
+    return; 
+  }
 
   f.seek(chunks[idx].offset);
   size_t endOffset = (idx + 1 < chunkCount) ? chunks[idx + 1].offset : 0;
@@ -405,6 +414,9 @@ static void loadChunk(int idx) {
     lineCount++;
   }
   f.close();
+  
+  if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+  SDActive = false;
 
   if (s_sourceLinesUsed == 0)
     layoutSourceLine(String("(empty entry)"), 'T', 0);
