@@ -296,8 +296,18 @@ static void layoutSourceLine(const String& text, char style, ulong orderedListNu
 // ── Chunk loading ─────────────────────────────────────────────────────────────
 static void buildIndex() {
   chunkCount = 0;
+
+  SDActive = true;
+  pocketmage::setCpuSpeed(240);
+  delay(50);
+
   File f = SD_MMC.open(s_entryPath, FILE_READ);
-  if (!f) { fileError = true; return; }
+  if (!f) { 
+    if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    SDActive = false;
+    fileError = true; 
+    return; 
+  }
 
   int lineCount = 0;
   chunks[0].offset = 0;
@@ -328,7 +338,11 @@ static void buildIndex() {
       chunkCount++;
     }
   }
+  
   f.close();
+  
+  if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+  SDActive = false;
 }
 
 static void loadChunk(int idx) {
@@ -402,13 +416,21 @@ static void loadChunk(int idx) {
 static void scanEntries() {
   s_entryCount = 0;
 
+  SDActive = true;
+  pocketmage::setCpuSpeed(240);
+  delay(50);
+
   // Create directories if they don't exist
   if (!SD_MMC.exists("/meche")) SD_MMC.mkdir("/meche");
   if (!SD_MMC.exists(ENTRIES_DIR)) SD_MMC.mkdir(ENTRIES_DIR);
   if (!SD_MMC.exists(IMAGES_DIR)) SD_MMC.mkdir(IMAGES_DIR);
 
   File dir = SD_MMC.open(ENTRIES_DIR);
-  if (!dir || !dir.isDirectory()) return;
+  if (!dir || !dir.isDirectory()) {
+    if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    SDActive = false;
+    return;
+  }
 
   File entry = dir.openNextFile();
   while (entry && s_entryCount < MAX_ENTRIES) {
@@ -427,6 +449,9 @@ static void scanEntries() {
     entry = dir.openNextFile();
   }
   dir.close();
+
+  if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+  SDActive = false;
 
   // Sort entries alphabetically
   for (int i = 0; i < s_entryCount - 1; i++) {
@@ -486,6 +511,11 @@ static void editorInit(const char* fname) {
     // Load existing file
     char path[128];
     snprintf(path, sizeof(path), "/meche/entries/%s", fname);
+
+    SDActive = true;
+    pocketmage::setCpuSpeed(240);
+    delay(50);
+
     File f = SD_MMC.open(path, FILE_READ);
     if (f) {
       while (f.available() && s_editorLineCount < EDITOR_MAX_LINES) {
@@ -496,6 +526,10 @@ static void editorInit(const char* fname) {
       }
       f.close();
     }
+    
+    if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    SDActive = false;
+    
   } else {
     s_editorFilename[0] = '\0';
     // Start with a template
@@ -535,6 +569,11 @@ static void editorSave() {
 
   char path[128];
   snprintf(path, sizeof(path), "/meche/entries/%s", s_editorFilename);
+  
+  SDActive = true;
+  pocketmage::setCpuSpeed(240);
+  delay(50);
+
   File f = SD_MMC.open(path, FILE_WRITE);
   if (f) {
     for (int i = 0; i < s_editorLineCount; i++) {
@@ -543,6 +582,10 @@ static void editorSave() {
     }
     f.close();
   }
+  
+  if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+  SDActive = false;
+  
   s_editorDirty = false;
 }
 
