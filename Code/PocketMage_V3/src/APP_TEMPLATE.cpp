@@ -620,7 +620,7 @@ static void updateOLED() {
     u8g2.drawStr(1, 20, info);
   } else if (appMode == MODE_CONFIRM) {
     u8g2.drawStr(1, 9, s_confirmMsg);
-    u8g2.drawStr(1, 20, "SPC=Yes  ESC=No");
+    u8g2.drawStr(1, 20, "SPC=Yes FN+Q=No");
   }
 
   u8g2.sendBuffer();
@@ -787,7 +787,7 @@ void processKB_APP() {
 
   // ── Browser mode ────────────────────────────────────────────────────────────
   if (appMode == MODE_BROWSER) {
-    if (ch == 27) {  // ESC — exit to PocketMage OS
+    if ((ch == 'q' || ch == 'Q') && (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT)) {  // FN+Q — exit to PocketMage OS
       OLED().oledWord("Exiting to PM OS");
       delay(500);
       rebootToPocketMage();
@@ -859,7 +859,7 @@ void processKB_APP() {
 
   // ── Viewer mode ─────────────────────────────────────────────────────────────
   if (appMode == MODE_VIEWER) {
-    if (ch == 27) {  // ESC — back to browser
+    if ((ch == 'q' || ch == 'Q') && (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT)) {  // FN+Q — back to browser
       appMode = MODE_BROWSER;
       needsRedraw = true;
       updateOLED();
@@ -918,7 +918,7 @@ void processKB_APP() {
 
   // ── Editor mode ─────────────────────────────────────────────────────────────
   if (appMode == MODE_EDITOR) {
-    if (ch == 27) {  // ESC — confirm discard or exit
+    if ((ch == 'q' || ch == 'Q') && (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT)) {  // FN+Q — confirm discard or exit
       if (s_editorDirty) {
         strcpy(s_confirmMsg, "Discard changes?");
         s_confirmReturn = MODE_BROWSER;
@@ -1061,7 +1061,7 @@ void processKB_APP() {
       }
       needsRedraw = true;
       updateOLED();
-    } else if (ch == 27) {  // ESC — No, go back to editor
+    } else if ((ch == 'q' || ch == 'Q') && (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT)) {  // FN+Q — No, go back to editor
       appMode = MODE_EDITOR;
       updateOLED();
       needsRedraw = true;
@@ -1132,7 +1132,7 @@ void einkHandler_APP() {
     // Footer
     display.setFont(&Font5x7Fixed);
     display.setCursor(2, display.height() - 2);
-    display.print("< > nav  SPC open  N new  ESC exit");
+    display.print("< > nav  SPC open  N new  FN+Q exit");
 
     EINK().refresh();
     return;
@@ -1160,7 +1160,7 @@ void einkHandler_APP() {
     // Footer
     display.setFont(&Font5x7Fixed);
     display.setCursor(2, display.height() - 2);
-    display.print("< > page  E edit  ESC back");
+    display.print("< > page  E edit  FN+Q back");
 
     EINK().refresh();
     return;
@@ -1208,7 +1208,7 @@ void einkHandler_APP() {
     // Footer
     display.setFont(&Font5x7Fixed);
     display.setCursor(2, display.height() - 2);
-    display.print("FN+Enter save  ESC discard  < > nav");
+    display.print("FN+Enter save  FN+Q discard  < > nav");
 
     EINK().refresh();
     return;
@@ -1222,7 +1222,7 @@ void einkHandler_APP() {
 
     display.setFont(&FreeSerif9pt7b);
     display.setCursor(40, 140);
-    display.print("Space = Yes    ESC = No");
+    display.print("Space = Yes    FN+Q = No");
 
     EINK().refresh();
     return;
