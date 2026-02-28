@@ -1,8 +1,8 @@
-// MechE Bible — PocketMage OTA App
-// A mechanical engineering dictionary/indexer for the PocketMage PDA.
-// Store .md entries in /meche/entries/ on the SD card.
-// Browse, search, read, and create entries on-device.
-// Images: place 1-bit BMP files in /meche/images/, reference as ![filename.bmp]
+// PocketMage Reference Manuals
+// A multi-manual reference library for the PocketMage PDA.
+// Structure on SD: /manuals/{ManualName}/entries/*.md
+//                  /manuals/{ManualName}/images/*.bin
+// Browse, search, read, and edit entries on-device.
 
 #include <globals.h>
 #if OTA_APP
@@ -32,8 +32,16 @@
 #define SPACEWIDTH_SYMBOL   "M"
 
 // ── App modes ─────────────────────────────────────────────────────────────────
-enum AppMode { MODE_BROWSER, MODE_VIEWER, MODE_EDITOR, MODE_CONFIRM };
-static AppMode appMode = MODE_BROWSER;
+enum AppMode { MODE_MANUAL_SELECT, MODE_BROWSER, MODE_VIEWER, MODE_EDITOR, MODE_CONFIRM };
+static AppMode appMode = MODE_MANUAL_SELECT;
+
+// ── Manual list ───────────────────────────────────────────────────────────────
+#define MAX_MANUALS         32
+static char s_manualNames[MAX_MANUALS][MAX_NAME_LEN];
+static int  s_manualCount    = 0;
+static int  s_manualSel      = 0;
+static int  s_manualScroll   = 0;
+static char s_selectedManual[MAX_NAME_LEN] = "";
 
 // ── Entry list ────────────────────────────────────────────────────────────────
 static char s_entryNames[MAX_ENTRIES][MAX_NAME_LEN];
@@ -46,14 +54,22 @@ static char s_filter[FILTER_MAX + 1] = "";
 static int  s_filterLen      = 0;
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
-static const char* const ENTRIES_DIR = "/meche/entries";
-static const char* const IMAGES_DIR  = "/meche/images";
+static const char* const MANUALS_ROOT = "/manuals";
+
+// Built dynamically when a manual is selected:
+static char s_entriesDir[128];  // e.g. /manuals/Machining/entries
+static char s_imagesDir[128];   // e.g. /manuals/Machining/images
+
+static void buildManualPaths() {
+  snprintf(s_entriesDir, sizeof(s_entriesDir), "/manuals/%s/entries", s_selectedManual);
+  snprintf(s_imagesDir,  sizeof(s_imagesDir),  "/manuals/%s/images",  s_selectedManual);
+}
 
 static char s_entryPath[128];
 static char s_entryDisplayName[MAX_NAME_LEN];
 
 static void setEntryPath(const char* fname) {
-  snprintf(s_entryPath, sizeof(s_entryPath), "/meche/entries/%s", fname);
+  snprintf(s_entryPath, sizeof(s_entryPath), "%s/%s", s_entriesDir, fname);
   char base[MAX_NAME_LEN];
   strncpy(base, fname, sizeof(base) - 1);
   base[sizeof(base) - 1] = '\0';
@@ -424,6 +440,54 @@ static void loadChunk(int idx) {
   needsRedraw = true;
 }
 
+// ── Manual scanning ────────────────────────────────────────────────────────────────
+static void scanManuals() {
+  s_manualCount = 0;
+
+  SDActive = true;
+  pocketmage::setCpuSpeed(240);
+  delay(50);
+
+  if (!SD_MMC.exists(MANUALS_ROOT)) SD_MMC.mkdir(MANUALS_ROOT);
+
+  File root = SD_MMC.open(MANUALS_ROOT);
+  if (!root || !root.isDirectory()) {
+    if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+    SDActive = false;
+    return;
+  }
+
+  File f = root.openNextFile();
+  while (f && s_manualCount < MAX_MANUALS) {
+    if (f.isDirectory()) {
+      const char* full  = f.name();
+      const char* slash = strrchr(full, '/');
+      const char* dname = slash ? slash + 1 : full;
+      strncpy(s_manualNames[s_manualCount], dname, MAX_NAME_LEN - 1);
+      s_manualNames[s_manualCount][MAX_NAME_LEN - 1] = '\0';
+      s_manualCount++;
+    }
+    f.close();
+    f = root.openNextFile();
+  }
+  root.close();
+
+  if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
+  SDActive = false;
+
+  // Sort alphabetically
+  for (int i = 0; i < s_manualCount - 1; i++) {
+    for (int j = i + 1; j < s_manualCount; j++) {
+      if (strcasecmp(s_manualNames[i], s_manualNames[j]) > 0) {
+        char tmp[MAX_NAME_LEN];
+        memcpy(tmp, s_manualNames[i], MAX_NAME_LEN);
+        memcpy(s_manualNames[i], s_manualNames[j], MAX_NAME_LEN);
+        memcpy(s_manualNames[j], tmp, MAX_NAME_LEN);
+      }
+    }
+  }
+}
+
 // ── Entry scanning ────────────────────────────────────────────────────────────
 static void scanEntries() {
   s_entryCount = 0;
@@ -433,11 +497,17 @@ static void scanEntries() {
   delay(50);
 
   // Create directories if they don't exist
-  if (!SD_MMC.exists("/meche")) SD_MMC.mkdir("/meche");
-  if (!SD_MMC.exists(ENTRIES_DIR)) SD_MMC.mkdir(ENTRIES_DIR);
-  if (!SD_MMC.exists(IMAGES_DIR)) SD_MMC.mkdir(IMAGES_DIR);
+  if (!SD_MMC.exists(s_entriesDir)) {
+    // Ensure parent hierarchy exists
+    char manualDir[128];
+    snprintf(manualDir, sizeof(manualDir), "/manuals/%s", s_selectedManual);
+    if (!SD_MMC.exists(MANUALS_ROOT)) SD_MMC.mkdir(MANUALS_ROOT);
+    if (!SD_MMC.exists(manualDir)) SD_MMC.mkdir(manualDir);
+    SD_MMC.mkdir(s_entriesDir);
+  }
+  if (!SD_MMC.exists(s_imagesDir)) SD_MMC.mkdir(s_imagesDir);
 
-  File dir = SD_MMC.open(ENTRIES_DIR);
+  File dir = SD_MMC.open(s_entriesDir);
   if (!dir || !dir.isDirectory()) {
     if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
     SDActive = false;
@@ -522,7 +592,7 @@ static void editorInit(const char* fname) {
 
     // Load existing file
     char path[128];
-    snprintf(path, sizeof(path), "/meche/entries/%s", fname);
+    snprintf(path, sizeof(path), "%s/%s", s_entriesDir, fname);
 
     SDActive = true;
     pocketmage::setCpuSpeed(240);
@@ -580,7 +650,7 @@ static void editorSave() {
   }
 
   char path[128];
-  snprintf(path, sizeof(path), "/meche/entries/%s", s_editorFilename);
+  snprintf(path, sizeof(path), "%s/%s", s_entriesDir, s_editorFilename);
   
   SDActive = true;
   pocketmage::setCpuSpeed(240);
@@ -606,13 +676,23 @@ static void updateOLED() {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_5x7_tf);
 
-  if (appMode == MODE_BROWSER) {
-    u8g2.drawStr(1, 9, "MechE Bible");
+  if (appMode == MODE_MANUAL_SELECT) {
+    u8g2.drawStr(1, 9, "Ref Manuals");
+    char hint[48];
+    if (s_manualCount == 0)
+      snprintf(hint, sizeof(hint), "No manuals on SD");
+    else
+      snprintf(hint, sizeof(hint), "< > select  SPC open  (%d)", s_manualCount);
+    u8g2.drawStr(1, 20, hint);
+  } else if (appMode == MODE_BROWSER) {
+    char header[48];
+    snprintf(header, sizeof(header), "%s", s_selectedManual);
+    u8g2.drawStr(1, 9, header);
     char hint[48];
     if (s_filterLen > 0)
       snprintf(hint, sizeof(hint), "Filter: %s (%d)", s_filter, s_filteredCount);
     else
-      snprintf(hint, sizeof(hint), "< > select  SPC open  (%d entries)", s_filteredCount);
+      snprintf(hint, sizeof(hint), "< > sel  SPC open  N new  (%d)", s_filteredCount);
     u8g2.drawStr(1, 20, hint);
   } else if (appMode == MODE_VIEWER) {
     String title = s_entryDisplayName;
@@ -770,13 +850,11 @@ void APP_INIT() {
   currentChunk = 0;
   pageIndex    = 0;
 
-  appMode = MODE_BROWSER;
-  scanEntries();
-  s_filterLen = 0;
-  s_filter[0] = '\0';
-  applyFilter();
-  s_browserSel    = 0;
-  s_browserScroll = 0;
+  // Start at the manual selector
+  appMode = MODE_MANUAL_SELECT;
+  scanManuals();
+  s_manualSel    = 0;
+  s_manualScroll = 0;
 
   // Set default display parameters
   display.setTextColor(GxEPD_BLACK);
@@ -806,6 +884,43 @@ void processKB_APP() {
     return;
   }
 
+  // ── Manual Selector mode ────────────────────────────────────────────────────────
+  if (appMode == MODE_MANUAL_SELECT) {
+    bool isEsc = (ch == 'q' || ch == 'Q') &&
+                 (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT);
+    if (isEsc) {
+      OLED().oledWord("Exiting to PM OS");
+      delay(400);
+      rebootToPocketMage();
+      return;
+    }
+    if (ch == 21 && s_manualSel < s_manualCount - 1) {  // right => next
+      s_manualSel++;
+      if (s_manualSel - s_manualScroll >= PICKER_VISIBLE) s_manualScroll++;
+      needsRedraw = true;
+    } else if (ch == 19 && s_manualSel > 0) {             // left => prev
+      s_manualSel--;
+      if (s_manualSel < s_manualScroll) s_manualScroll = s_manualSel;
+      needsRedraw = true;
+    } else if (ch == ' ' || ch == 13) {                   // SPACE/ENTER => open
+      if (s_manualCount > 0) {
+        strncpy(s_selectedManual, s_manualNames[s_manualSel], MAX_NAME_LEN - 1);
+        s_selectedManual[MAX_NAME_LEN - 1] = '\0';
+        buildManualPaths();
+        appMode = MODE_BROWSER;
+        scanEntries();
+        s_filterLen = 0;
+        s_filter[0] = '\0';
+        applyFilter();
+        s_browserSel    = 0;
+        s_browserScroll = 0;
+        needsRedraw = true;
+      }
+    }
+    updateOLED();
+    return;
+  }
+
   // ── Modifier keys (SHIFT / FN toggle) — handled globally ──────────────────
   if (ch == 17) {  // SHIFT toggle
     auto st = KB().getKeyboardState();
@@ -830,10 +945,13 @@ void processKB_APP() {
 
   // ── Browser mode ────────────────────────────────────────────────────────────
   if (appMode == MODE_BROWSER) {
-    if ((ch == 'q' || ch == 'Q') && (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT)) {  // FN+Q — exit to PocketMage OS
-      OLED().oledWord("Exiting to PM OS");
-      delay(500);
-      rebootToPocketMage();
+    if ((ch == 'q' || ch == 'Q') && (KB().getKeyboardState() == FUNC || KB().getKeyboardState() == FN_SHIFT)) {  // FN+Q — back to manual selector
+      appMode = MODE_MANUAL_SELECT;
+      scanManuals();
+      s_manualSel    = 0;
+      s_manualScroll = 0;
+      needsRedraw = true;
+      updateOLED();
       return;
     }
     if (ch == 21) {  // RIGHT (>) — next entry
@@ -1123,17 +1241,59 @@ void einkHandler_APP() {
   display.fillScreen(GxEPD_WHITE);
   display.setTextColor(GxEPD_BLACK);
 
-  // ── Browser mode ────────────────────────────────────────────────────────────
+  // ── Manual Selector mode ────────────────────────────────────────────────────────
+  if (appMode == MODE_MANUAL_SELECT) {
+    display.setFont(&Font5x7Fixed);
+    display.setCursor(4, 11);
+    display.print("Reference Manuals");
+    display.drawFastHLine(0, 14, display.width(), GxEPD_BLACK);
+
+    if (s_manualCount == 0) {
+      display.setFont(&FreeSerif9pt7b);
+      display.setCursor(10, 50);
+      display.print("No manuals found in /manuals/");
+    } else {
+      display.setFont(&FreeSerif9pt7b);
+      int lineH = 20;
+      int y     = 14 + lineH;
+      for (int i = s_manualScroll;
+           i < s_manualCount && i < s_manualScroll + PICKER_VISIBLE;
+           i++) {
+        if (i == s_manualSel) {
+          display.fillRect(0, y - lineH + 2, display.width(), lineH, GxEPD_BLACK);
+          display.setTextColor(GxEPD_WHITE);
+        } else {
+          display.setTextColor(GxEPD_BLACK);
+        }
+        display.setCursor(6, y);
+        display.print(s_manualNames[i]);
+        display.setTextColor(GxEPD_BLACK);
+        y += lineH;
+        if (y > display.height() - 16) break;
+      }
+    }
+
+    // Footer
+    display.setTextColor(GxEPD_BLACK);
+    display.setFont(&Font5x7Fixed);
+    display.setCursor(4, display.height() - 4);
+    display.print("< > select  SPC open  FN+Q exit");
+    display.drawFastHLine(0, display.height() - 16, display.width(), GxEPD_BLACK);
+    EINK().refresh();
+    return;
+  }
+
+  // ── Browser mode ────────────────────────────────────────────────────────
   if (appMode == MODE_BROWSER) {
     // Header
     display.setFont(&Font5x7Fixed);
     display.setCursor(4, 11);
     if (s_filterLen > 0) {
       char headerTxt[64];
-      snprintf(headerTxt, sizeof(headerTxt), "MechE Bible  [%s]", s_filter);
+      snprintf(headerTxt, sizeof(headerTxt), "%s  [%s]", s_selectedManual, s_filter);
       display.print(headerTxt);
     } else {
-      display.print("MechE Bible");
+      display.print(s_selectedManual);
     }
     display.drawFastHLine(0, 14, display.width(), GxEPD_BLACK);
 
