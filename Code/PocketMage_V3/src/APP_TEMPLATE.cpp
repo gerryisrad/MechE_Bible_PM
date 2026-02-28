@@ -624,12 +624,43 @@ static void updateOLED() {
              currentChunk + 1, chunkCount);
     u8g2.drawStr(1, 20, info);
   } else if (appMode == MODE_EDITOR) {
-    u8g2.drawStr(1, 9, "Editor");
-    char info[48];
-    snprintf(info, sizeof(info), "Ln %d Col %d  %s",
-             s_editorCursorLine + 1, s_editorCursorCol + 1,
-             s_editorDirty ? "[modified]" : "");
-    u8g2.drawStr(1, 20, info);
+    // Show current line text live — mirrors PM OS Notes app behavior
+    // Header: filename + dirty marker
+    char header[32];
+    snprintf(header, sizeof(header), "Editing: %s%s",
+             s_editorFilename[0] ? s_editorFilename : "new",
+             s_editorDirty ? " *" : "");
+    u8g2.drawStr(1, 9, header);
+
+    // Show the current line's text in a larger, readable font
+    u8g2.setFont(u8g2_font_6x10_tf);
+    const char* lineText = s_editorLines[s_editorCursorLine];
+    int lineLen = (int)strlen(lineText);
+
+    // Build display string: truncate to fit OLED width (~13 chars at 6px each)
+    // Scroll the view window so the cursor is always visible
+    int oledChars = 10;  // chars visible at once
+    int windowStart = s_editorCursorCol - oledChars + 1;
+    if (windowStart < 0) windowStart = 0;
+    if (s_editorCursorCol < windowStart) windowStart = s_editorCursorCol;
+
+    char dispBuf[16];
+    int dispLen = 0;
+    for (int i = windowStart; i < lineLen && dispLen < oledChars; i++)
+      dispBuf[dispLen++] = lineText[i];
+    dispBuf[dispLen] = '\0';
+
+    u8g2.drawStr(1, 20, dispBuf);
+
+    // Draw a small underline cursor
+    int cursorCharPos = s_editorCursorCol - windowStart;
+    u8g2.drawHLine(1 + cursorCharPos * 6, 21, 5);
+
+    // Bottom status: line / total
+    u8g2.setFont(u8g2_font_5x7_tf);
+    char status[32];
+    snprintf(status, sizeof(status), "Ln %d/%d", s_editorCursorLine + 1, s_editorLineCount);
+    u8g2.drawStr(1, 30, status);
   } else if (appMode == MODE_CONFIRM) {
     u8g2.drawStr(1, 9, s_confirmMsg);
     u8g2.drawStr(1, 20, "SPC=Yes FN+Q=No");
@@ -964,42 +995,42 @@ void processKB_APP() {
     }
 
     // Navigation within editor
-    if (ch == 21) {  // RIGHT (>) — move cursor down one line
+    if (ch == 21) {  // RIGHT (>) — move cursor DOWN one line (e-ink refresh needed)
       if (s_editorCursorLine < s_editorLineCount - 1) {
         s_editorCursorLine++;
         int len = (int)strlen(s_editorLines[s_editorCursorLine]);
         if (s_editorCursorCol > len) s_editorCursorCol = len;
-        needsRedraw = true;
+        needsRedraw = true;  // new line content needs showing
       }
-    } else if (ch == 19) {  // LEFT (<) — move cursor up one line
+    } else if (ch == 19) {  // LEFT (<) — move cursor UP one line (e-ink refresh needed)
       if (s_editorCursorLine > 0) {
         s_editorCursorLine--;
         int len = (int)strlen(s_editorLines[s_editorCursorLine]);
         if (s_editorCursorCol > len) s_editorCursorCol = len;
-        needsRedraw = true;
+        needsRedraw = true;  // new line content needs showing
       }
-    } else if (ch == 6) {  // FN+RIGHT — move cursor right within line
+    } else if (ch == 6) {  // FN+RIGHT — cursor right within line (OLED only, no e-ink)
       int len = (int)strlen(s_editorLines[s_editorCursorLine]);
       if (s_editorCursorCol < len) {
         s_editorCursorCol++;
-        needsRedraw = true;
+        // Only OLED update — no needsRedraw
       }
       KB().setKeyboardState(NORMAL);
-    } else if (ch == 12) {  // FN+LEFT — move cursor left within line
+    } else if (ch == 12) {  // FN+LEFT — cursor left within line (OLED only, no e-ink)
       if (s_editorCursorCol > 0) {
         s_editorCursorCol--;
-        needsRedraw = true;
+        // Only OLED update — no needsRedraw
       }
       KB().setKeyboardState(NORMAL);
-    } else if (ch == 26) {  // FN+SHIFT+RIGHT — jump to end of line
+    } else if (ch == 26) {  // FN+SHIFT+RIGHT — jump to end of line (e-ink refresh to sync view)
       s_editorCursorCol = (int)strlen(s_editorLines[s_editorCursorLine]);
       needsRedraw = true;
       KB().setKeyboardState(NORMAL);
-    } else if (ch == 24) {  // FN+SHIFT+LEFT — jump to start of line
+    } else if (ch == 24) {  // FN+SHIFT+LEFT — jump to start of line (e-ink refresh)
       s_editorCursorCol = 0;
       needsRedraw = true;
       KB().setKeyboardState(NORMAL);
-    } else if (ch == 13) {  // ENTER — new line
+    } else if (ch == 13) {  // ENTER — commit line and start new one (ALWAYS triggers e-ink)
       if (s_editorLineCount < EDITOR_MAX_LINES) {
         for (int i = s_editorLineCount; i > s_editorCursorLine + 1; i--)
           memcpy(s_editorLines[i], s_editorLines[i - 1], EDITOR_LINE_LEN);
@@ -1025,7 +1056,7 @@ void processKB_APP() {
         memmove(line + s_editorCursorCol - 1, line + s_editorCursorCol, len - s_editorCursorCol + 1);
         s_editorCursorCol--;
         s_editorDirty = true;
-        needsRedraw = true;
+        // No needsRedraw — OLED handles live feedback within the current line
       } else if (s_editorCursorLine > 0) {
         // Merge with previous line
         char* prev = s_editorLines[s_editorCursorLine - 1];
@@ -1038,9 +1069,9 @@ void processKB_APP() {
         s_editorCursorLine--;
         s_editorCursorCol = prevLen;
         s_editorDirty = true;
-        needsRedraw = true;
+        needsRedraw = true;  // line merge requires e-ink refresh
       }
-    } else if (ch >= 32 && ch < 127) {  // Printable character
+    } else if (ch >= 32 && ch < 127) {  // Printable character — OLED only, no e-ink
       char* line = s_editorLines[s_editorCursorLine];
       int len = (int)strlen(line);
       if (len < EDITOR_LINE_LEN - 2) {
@@ -1048,7 +1079,7 @@ void processKB_APP() {
         line[s_editorCursorCol] = ch;
         s_editorCursorCol++;
         s_editorDirty = true;
-        needsRedraw = true;
+        // No needsRedraw — OLED shows it live, E-ink only updates on Enter/nav
       }
       // Reset modifier state after typing (except for numbers in FN mode)
       if (!(ch >= '0' && ch <= '9') && KB().getKeyboardState() != NORMAL)
