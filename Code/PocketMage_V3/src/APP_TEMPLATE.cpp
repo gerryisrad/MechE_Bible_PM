@@ -637,14 +637,14 @@ static void updateOLED() {
     const char* lineText = s_editorLines[s_editorCursorLine];
     int lineLen = (int)strlen(lineText);
 
-    // Build display string: truncate to fit OLED width (~13 chars at 6px each)
-    // Scroll the view window so the cursor is always visible
-    int oledChars = 10;  // chars visible at once
-    int windowStart = s_editorCursorCol - oledChars + 1;
-    if (windowStart < 0) windowStart = 0;
-    if (s_editorCursorCol < windowStart) windowStart = s_editorCursorCol;
+    // Build display string: 21 chars at 6px = 126px (fills the full 128px OLED width)
+    // Only scroll the window once the cursor goes past the visible area
+    int oledChars = 21;  // full OLED width with u8g2_font_6x10_tf
+    int windowStart = 0;
+    if (s_editorCursorCol >= oledChars)
+      windowStart = s_editorCursorCol - oledChars + 1;
 
-    char dispBuf[16];
+    char dispBuf[24];  // 21 chars + null
     int dispLen = 0;
     for (int i = windowStart; i < lineLen && dispLen < oledChars; i++)
       dispBuf[dispLen++] = lineText[i];
@@ -652,7 +652,7 @@ static void updateOLED() {
 
     u8g2.drawStr(1, 20, dispBuf);
 
-    // Draw a small underline cursor
+    // Draw a small underline cursor at the correct position
     int cursorCharPos = s_editorCursorCol - windowStart;
     u8g2.drawHLine(1 + cursorCharPos * 6, 21, 5);
 
