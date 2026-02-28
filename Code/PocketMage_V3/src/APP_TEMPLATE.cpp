@@ -44,7 +44,9 @@ static int  s_manualScroll   = 0;
 static char s_selectedManual[MAX_NAME_LEN] = "";
 
 // ── Entry list ────────────────────────────────────────────────────────────────
+#define MAX_TAG_LEN          64
 static char s_entryNames[MAX_ENTRIES][MAX_NAME_LEN];
+static char s_entryTags[MAX_ENTRIES][MAX_TAG_LEN];  // cached from **Tags:** line
 static int  s_entryCount     = 0;
 static int  s_filteredIdx[MAX_ENTRIES];
 static int  s_filteredCount  = 0;
@@ -522,8 +524,35 @@ static void scanEntries() {
       const char* fname = slash ? slash + 1 : full;
       int flen = (int)strlen(fname);
       if (flen > 3 && strcmp(fname + flen - 3, ".md") == 0) {
-        strncpy(s_entryNames[s_entryCount], fname, MAX_NAME_LEN - 1);
-        s_entryNames[s_entryCount][MAX_NAME_LEN - 1] = '\0';
+        int idx = s_entryCount;
+        strncpy(s_entryNames[idx], fname, MAX_NAME_LEN - 1);
+        s_entryNames[idx][MAX_NAME_LEN - 1] = '\0';
+        s_entryTags[idx][0] = '\0';  // default: no tags
+
+        // Peek at first 20 lines to extract **Tags:** value
+        char entryPath[160];
+        snprintf(entryPath, sizeof(entryPath), "%s/%s", s_entriesDir, fname);
+        File peek = SD_MMC.open(entryPath, FILE_READ);
+        if (peek) {
+          for (int ln = 0; ln < 20 && peek.available(); ln++) {
+            String line = peek.readStringUntil('\n');
+            line.trim();
+            // Match "**Tags:**" or "**tags:**" (case-insensitive prefix)
+            if (line.startsWith("**Tags:") || line.startsWith("**tags:")) {
+              // Strip the **Tags:** prefix (ends with " " or nothing)
+              int colon = line.indexOf(":**");
+              if (colon >= 0) {
+                String tagVal = line.substring(colon + 3);
+                tagVal.trim();
+                strncpy(s_entryTags[idx], tagVal.c_str(), MAX_TAG_LEN - 1);
+                s_entryTags[idx][MAX_TAG_LEN - 1] = '\0';
+              }
+              break;
+            }
+          }
+          peek.close();
+        }
+
         s_entryCount++;
       }
     }
@@ -535,7 +564,7 @@ static void scanEntries() {
   if (SAVE_POWER) pocketmage::setCpuSpeed(POWER_SAVE_FREQ);
   SDActive = false;
 
-  // Sort entries alphabetically
+  // Sort entries alphabetically, keeping tags in sync
   for (int i = 0; i < s_entryCount - 1; i++) {
     for (int j = i + 1; j < s_entryCount; j++) {
       if (strcasecmp(s_entryNames[i], s_entryNames[j]) > 0) {
@@ -543,6 +572,10 @@ static void scanEntries() {
         memcpy(tmp, s_entryNames[i], MAX_NAME_LEN);
         memcpy(s_entryNames[i], s_entryNames[j], MAX_NAME_LEN);
         memcpy(s_entryNames[j], tmp, MAX_NAME_LEN);
+        char tmpTag[MAX_TAG_LEN];
+        memcpy(tmpTag, s_entryTags[i], MAX_TAG_LEN);
+        memcpy(s_entryTags[i], s_entryTags[j], MAX_TAG_LEN);
+        memcpy(s_entryTags[j], tmpTag, MAX_TAG_LEN);
       }
     }
   }
@@ -677,7 +710,7 @@ static void updateOLED() {
   u8g2.setFont(u8g2_font_5x7_tf);
 
   if (appMode == MODE_MANUAL_SELECT) {
-    u8g2.drawStr(1, 9, "Ref Manuals");
+    u8g2.drawStr(1, 9, "Pocket Reference Manuals");
     char hint[48];
     if (s_manualCount == 0)
       snprintf(hint, sizeof(hint), "No manuals on SD");
@@ -688,12 +721,23 @@ static void updateOLED() {
     char header[48];
     snprintf(header, sizeof(header), "%s", s_selectedManual);
     u8g2.drawStr(1, 9, header);
+    // Middle row: nav hint or search filter
     char hint[48];
     if (s_filterLen > 0)
       snprintf(hint, sizeof(hint), "Filter: %s (%d)", s_filter, s_filteredCount);
     else
       snprintf(hint, sizeof(hint), "< > sel  SPC open  N new  (%d)", s_filteredCount);
     u8g2.drawStr(1, 20, hint);
+    // Bottom row: tags of currently highlighted entry
+    if (s_filteredCount > 0) {
+      int realIdx = s_filteredIdx[s_browserSel];
+      if (s_entryTags[realIdx][0]) {
+        u8g2.setFont(u8g2_font_5x7_tf);
+        char tagLine[48];
+        snprintf(tagLine, sizeof(tagLine), "# %s", s_entryTags[realIdx]);
+        u8g2.drawStr(1, 30, tagLine);
+      }
+    }
   } else if (appMode == MODE_VIEWER) {
     String title = s_entryDisplayName;
     if ((int)title.length() > 36) title = title.substring(0, 35) + "~";
