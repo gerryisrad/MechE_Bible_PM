@@ -637,14 +637,14 @@ static void updateOLED() {
     const char* lineText = s_editorLines[s_editorCursorLine];
     int lineLen = (int)strlen(lineText);
 
-    // Build display string: 21 chars at 6px = 126px (fills the full 128px OLED width)
-    // Only scroll the window once the cursor goes past the visible area
-    int oledChars = 21;  // full OLED width with u8g2_font_6x10_tf
+    // Build display string: 42 chars at 6px = 252px (fills the full 256px OLED width)
+    // SSD1326 256x32 OLED — confirmed in pocketmage_oled.cpp
+    int oledChars = 42;
     int windowStart = 0;
     if (s_editorCursorCol >= oledChars)
       windowStart = s_editorCursorCol - oledChars + 1;
 
-    char dispBuf[24];  // 21 chars + null
+    char dispBuf[48];  // 42 chars + null + margin
     int dispLen = 0;
     for (int i = windowStart; i < lineLen && dispLen < oledChars; i++)
       dispBuf[dispLen++] = lineText[i];
