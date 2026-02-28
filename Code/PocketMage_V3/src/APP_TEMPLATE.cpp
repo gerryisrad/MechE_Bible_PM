@@ -738,7 +738,6 @@ void APP_INIT() {
   fileError    = false;
   currentChunk = 0;
   pageIndex    = 0;
-  needsRedraw  = true;
 
   appMode = MODE_BROWSER;
   scanEntries();
@@ -748,11 +747,12 @@ void APP_INIT() {
   s_browserSel    = 0;
   s_browserScroll = 0;
 
-  // Set default OLED text parameters
+  // Set default display parameters
   display.setTextColor(GxEPD_BLACK);
   display.setTextWrap(false);
-  
+
   updateOLED();
+  needsRedraw  = true;
   EINK().forceSlowFullUpdate(true);
 }
 
@@ -854,8 +854,10 @@ void processKB_APP() {
         s_browserScroll = 0;
         needsRedraw = true;
       }
-    } else if (ch >= 32 && ch < 127 && ch != 'n' && ch != 'N') {
-      // Printable — add to search filter
+    } else if (ch >= 32 && ch < 127 && ch != 'n' && ch != 'N'
+               && KB().getKeyboardState() != FUNC
+               && KB().getKeyboardState() != FN_SHIFT) {
+      // Printable — add to search filter (only in normal/SHIFT state)
       if (s_filterLen < FILTER_MAX) {
         s_filter[s_filterLen++] = ch;
         s_filter[s_filterLen]   = '\0';
